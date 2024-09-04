@@ -1,0 +1,5 @@
+llm:
+  api_type: "openai"  # or azure / ollama / groq etc.
+  model: "gpt-4o"  # or gpt-3.5-turbo
+  base_url: "https://api.rcouyi.com/v1"  # or forward url / other llm url
+  api_key: "sk-GrsnkHQJrd7ng9qg0dDbBdB13fD24d5f915fC06cD78713Fb"

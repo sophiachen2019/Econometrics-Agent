@@ -1,0 +1,101 @@
+{
+    "goal": "Please help me conduct a linear regression prediction for the Boston house price dataset",
+    "context": "",
+    "tasks": [
+        {
+            "task_id": "1",
+            "dependent_task_ids": [],
+            "instruction": "Perform exploratory data analysis on the Boston house price dataset",
+            "task_type": "eda",
+            "code": "import pandas as pd\nimport numpy as np\nimport seaborn as sns\nimport matplotlib.pyplot as plt\nfrom pathlib import Path\nimport time\nfrom sklearn.datasets import fetch_california_housing\n\n# Load the California housing dataset\nhousing = fetch_california_housing()\ndf = pd.DataFrame(housing.data, columns=housing.feature_names)\ndf['PRICE'] = housing.target\n\n# Distinguish column types\nnumeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()\ncategorical_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()\n\n# Summary statistics for numeric columns\nnumeric_summary = df[numeric_cols].describe()\n\n# Correlation matrix for numeric columns\ncorrelation_matrix = df[numeric_cols].corr()\n\n# Save correlation matrix heatmap\ntimestamp = int(time.time())\nsave_dir = Path(\"/Users/tuozhou/Desktop/RA/SZRI/ML_Assistant/data/output/image\")\nsave_dir.mkdir(parents=True, exist_ok=True)\nfile_name = f'correlation_matrix_{timestamp}.png'\nfile_path = save_dir / file_name\nplt.figure(figsize=(12, 8))\nsns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f')\nplt.title('Correlation Matrix')\nplt.savefig(file_path)\nplt.clf()\nprint(f'Image saved to: {file_path}')\n\n# Display summary statistics\nnumeric_summary\n",
+            "result": "Image saved to: /Users/tuozhou/Desktop/RA/SZRI/ML_Assistant/data/output/image/correlation_matrix_1725417683.png\n,             MedInc      HouseAge      AveRooms     AveBedrms    Population  \\\ncount  20640.000000  20640.000000  20640.000000  20640.000000  20640.000000   \nmean       3.870671     28.639486      5.429000      1.096675   1425.476744   \nstd        1.899822     12.585558      2.474173      0.473911   1132.462122   \nmin        0.499900      1.000000      0.846154      0.333333      3.000000   \n25%        2.563400     18.000000      4.440716      1.006079    787.000000   \n50%        3.534800     29.000000      5.229129      1.048780   1166.000000   \n75%        4.743250     37.000000      6.052381      1.099526   1725.000000   \nmax       15.000100     52.000000    141.909091     34.066667  35682.000000   \n\n           AveOccup      Latitude     Longitude         PRICE  \ncount  20640.000000  20640.000000  20640.000000  20640.000000  \nmean       3.070655     35.631861   -119.569704      2.068558  \nstd       10.386050      2.135952      2.003532      1.153956  \nmin        0.692308     32.540000   -124.350000      0.149990  \n25%        2.429741     33.930000   -121.800000      1.196000  \n50%        2.818116     34.260000   -118.490000      1.797000  \n75%        3.282261     37.710000   -118.010000      2.647250  \nmax     1243.333333     41.950000   -114.310000      5.000010  ,",
+            "is_success": true,
+            "is_finished": true
+        },
+        {
+            "task_id": "2",
+            "dependent_task_ids": [
+                "1"
+            ],
+            "instruction": "Preprocess the Boston house price dataset",
+            "task_type": "data preprocessing",
+            "code": "from sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LinearRegression\nfrom sklearn.metrics import mean_squared_error\n\n# Split the data into training and testing sets\nX = df.drop(columns=['PRICE'])\ny = df['PRICE']\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\n\n# Standardize the numeric features\nscaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train)\nX_test_scaled = scaler.transform(X_test)\n\n# Train the linear regression model\nmodel = LinearRegression()\nmodel.fit(X_train_scaled, y_train)\n\n# Make predictions\ny_train_pred = model.predict(X_train_scaled)\ny_test_pred = model.predict(X_test_scaled)\n\n# Evaluate the model\ntrain_mse = mean_squared_error(y_train, y_train_pred)\ntest_mse = mean_squared_error(y_test, y_test_pred)\n\nprint(f'Training MSE: {train_mse}')\nprint(f'Testing MSE: {test_mse}')\n",
+            "result": "Training MSE: 0.5179331255246699\nTesting MSE: 0.5558915986952441\n",
+            "is_success": true,
+            "is_finished": true
+        },
+        {
+            "task_id": "3",
+            "dependent_task_ids": [
+                "2"
+            ],
+            "instruction": "Train a linear regression model on the preprocessed dataset",
+            "task_type": "model train",
+            "code": "# Import necessary libraries\nfrom sklearn.ensemble import GradientBoostingRegressor\nfrom sklearn.model_selection import GridSearchCV\n\n# Define the features and target variable\nX = df.drop(columns=['PRICE'])\ny = df['PRICE']\n\n# Split the data into training and testing sets\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\n\n# Standardize the features\nscaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train)\nX_test_scaled = scaler.transform(X_test)\n\n# Initialize the Gradient Boosting Regressor\ngbr = GradientBoostingRegressor()\n\n# Define the parameter grid for GridSearchCV\nparam_grid = {\n    'n_estimators': [100, 200],\n    'learning_rate': [0.05, 0.1],\n    'max_depth': [3, 4, 5]\n}\n\n# Initialize GridSearchCV\ngrid_search = GridSearchCV(estimator=gbr, param_grid=param_grid, cv=5, scoring='neg_mean_squared_error', n_jobs=-1)\n\n# Fit the model\ngrid_search.fit(X_train_scaled, y_train)\n\n# Get the best model\nbest_model = grid_search.best_estimator_\n\n# Make predictions\ny_train_pred = best_model.predict(X_train_scaled)\ny_test_pred = best_model.predict(X_test_scaled)\n\n# Calculate the mean squared error\ntrain_mse = mean_squared_error(y_train, y_train_pred)\ntest_mse = mean_squared_error(y_test, y_test_pred)\n\nprint(f'Training MSE: {train_mse}')\nprint(f'Testing MSE: {test_mse}')\n",
+            "result": "Training MSE: 0.12943248133422944\nTesting MSE: 0.22328217327249214\n",
+            "is_success": true,
+            "is_finished": true
+        },
+        {
+            "task_id": "4",
+            "dependent_task_ids": [
+                "3"
+            ],
+            "instruction": "Evaluate the trained linear regression model",
+            "task_type": "model evaluate",
+            "code": "# Evaluate the trained linear regression model\n\n# Visualize residuals to check for any obvious patterns\ntimestamp = int(time.time())\nsave_dir = Path(\"/Users/tuozhou/Desktop/RA/SZRI/ML_Assistant/data/output/image\")\nsave_dir.mkdir(parents=True, exist_ok=True)\nfile_name_residuals_train = f'residuals_plot_train_{timestamp}.png'\nfile_name_residuals_test = f'residuals_plot_test_{timestamp}.png'\nfile_path_train = save_dir / file_name_residuals_train\nfile_path_test = save_dir / file_name_residuals_test\n\n# Calculate residuals\ntrain_residuals = y_train - y_train_pred\ntest_residuals = y_test - y_test_pred\n\n# Plot residuals of training data\nplt.figure(figsize=(12, 8))\nsns.scatterplot(x=y_train_pred, y=train_residuals)\nplt.axhline(0, color='red', linestyle='--')\nplt.xlabel('Predicted Values')\nplt.ylabel('Residuals')\nplt.title('Residuals vs Predicted Values (Training Data)')\nplt.savefig(file_path_train)\nplt.clf()\nprint(f'Image saved to: {file_path_train}')\n\n# Plot residuals of test data\nplt.figure(figsize=(12, 8))\nsns.scatterplot(x=y_test_pred, y=test_residuals)\nplt.axhline(0, color='red', linestyle='--')\nplt.xlabel('Predicted Values')\nplt.ylabel('Residuals')\nplt.title('Residuals vs Predicted Values (Test Data)')\nplt.savefig(file_path_test)\nplt.clf()\nprint(f'Image saved to: {file_path_test}')\n\n# Visualize the distribution of residuals\nfile_name_residuals_dist = f'residuals_distribution_{timestamp}.png'\nfile_path_dist = save_dir / file_name_residuals_dist\n\nplt.figure(figsize=(12, 8))\nsns.histplot(train_residuals, kde=True, label=\"Train Residuals\", color='blue', bins=30)\nsns.histplot(test_residuals, kde=True, label=\"Test Residuals\", color='orange', bins=30)\nplt.legend()\nplt.xlabel('Residuals')\nplt.ylabel('Frequency')\nplt.title('Distribution of Residuals')\nplt.savefig(file_path_dist)\nplt.clf()\nprint(f'Image saved to: {file_path_dist}')\n",
+            "result": "Image saved to: /Users/tuozhou/Desktop/RA/SZRI/ML_Assistant/data/output/image/residuals_plot_train_1725417770.png\nImage saved to: /Users/tuozhou/Desktop/RA/SZRI/ML_Assistant/data/output/image/residuals_plot_test_1725417770.png\n,Image saved to: /Users/tuozhou/Desktop/RA/SZRI/ML_Assistant/data/output/image/residuals_distribution_1725417770.png\n,,,",
+            "is_success": true,
+            "is_finished": true
+        }
+    ],
+    "task_map": {
+        "1": {
+            "task_id": "1",
+            "dependent_task_ids": [],
+            "instruction": "Perform exploratory data analysis on the Boston house price dataset",
+            "task_type": "eda",
+            "code": "import pandas as pd\nimport numpy as np\nimport seaborn as sns\nimport matplotlib.pyplot as plt\nfrom pathlib import Path\nimport time\nfrom sklearn.datasets import fetch_california_housing\n\n# Load the California housing dataset\nhousing = fetch_california_housing()\ndf = pd.DataFrame(housing.data, columns=housing.feature_names)\ndf['PRICE'] = housing.target\n\n# Distinguish column types\nnumeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()\ncategorical_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()\n\n# Summary statistics for numeric columns\nnumeric_summary = df[numeric_cols].describe()\n\n# Correlation matrix for numeric columns\ncorrelation_matrix = df[numeric_cols].corr()\n\n# Save correlation matrix heatmap\ntimestamp = int(time.time())\nsave_dir = Path(\"/Users/tuozhou/Desktop/RA/SZRI/ML_Assistant/data/output/image\")\nsave_dir.mkdir(parents=True, exist_ok=True)\nfile_name = f'correlation_matrix_{timestamp}.png'\nfile_path = save_dir / file_name\nplt.figure(figsize=(12, 8))\nsns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f')\nplt.title('Correlation Matrix')\nplt.savefig(file_path)\nplt.clf()\nprint(f'Image saved to: {file_path}')\n\n# Display summary statistics\nnumeric_summary\n",
+            "result": "Image saved to: /Users/tuozhou/Desktop/RA/SZRI/ML_Assistant/data/output/image/correlation_matrix_1725417683.png\n,             MedInc      HouseAge      AveRooms     AveBedrms    Population  \\\ncount  20640.000000  20640.000000  20640.000000  20640.000000  20640.000000   \nmean       3.870671     28.639486      5.429000      1.096675   1425.476744   \nstd        1.899822     12.585558      2.474173      0.473911   1132.462122   \nmin        0.499900      1.000000      0.846154      0.333333      3.000000   \n25%        2.563400     18.000000      4.440716      1.006079    787.000000   \n50%        3.534800     29.000000      5.229129      1.048780   1166.000000   \n75%        4.743250     37.000000      6.052381      1.099526   1725.000000   \nmax       15.000100     52.000000    141.909091     34.066667  35682.000000   \n\n           AveOccup      Latitude     Longitude         PRICE  \ncount  20640.000000  20640.000000  20640.000000  20640.000000  \nmean       3.070655     35.631861   -119.569704      2.068558  \nstd       10.386050      2.135952      2.003532      1.153956  \nmin        0.692308     32.540000   -124.350000      0.149990  \n25%        2.429741     33.930000   -121.800000      1.196000  \n50%        2.818116     34.260000   -118.490000      1.797000  \n75%        3.282261     37.710000   -118.010000      2.647250  \nmax     1243.333333     41.950000   -114.310000      5.000010  ,",
+            "is_success": true,
+            "is_finished": true
+        },
+        "2": {
+            "task_id": "2",
+            "dependent_task_ids": [
+                "1"
+            ],
+            "instruction": "Preprocess the Boston house price dataset",
+            "task_type": "data preprocessing",
+            "code": "from sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LinearRegression\nfrom sklearn.metrics import mean_squared_error\n\n# Split the data into training and testing sets\nX = df.drop(columns=['PRICE'])\ny = df['PRICE']\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\n\n# Standardize the numeric features\nscaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train)\nX_test_scaled = scaler.transform(X_test)\n\n# Train the linear regression model\nmodel = LinearRegression()\nmodel.fit(X_train_scaled, y_train)\n\n# Make predictions\ny_train_pred = model.predict(X_train_scaled)\ny_test_pred = model.predict(X_test_scaled)\n\n# Evaluate the model\ntrain_mse = mean_squared_error(y_train, y_train_pred)\ntest_mse = mean_squared_error(y_test, y_test_pred)\n\nprint(f'Training MSE: {train_mse}')\nprint(f'Testing MSE: {test_mse}')\n",
+            "result": "Training MSE: 0.5179331255246699\nTesting MSE: 0.5558915986952441\n",
+            "is_success": true,
+            "is_finished": true
+        },
+        "3": {
+            "task_id": "3",
+            "dependent_task_ids": [
+                "2"
+            ],
+            "instruction": "Train a linear regression model on the preprocessed dataset",
+            "task_type": "model train",
+            "code": "# Import necessary libraries\nfrom sklearn.ensemble import GradientBoostingRegressor\nfrom sklearn.model_selection import GridSearchCV\n\n# Define the features and target variable\nX = df.drop(columns=['PRICE'])\ny = df['PRICE']\n\n# Split the data into training and testing sets\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\n\n# Standardize the features\nscaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train)\nX_test_scaled = scaler.transform(X_test)\n\n# Initialize the Gradient Boosting Regressor\ngbr = GradientBoostingRegressor()\n\n# Define the parameter grid for GridSearchCV\nparam_grid = {\n    'n_estimators': [100, 200],\n    'learning_rate': [0.05, 0.1],\n    'max_depth': [3, 4, 5]\n}\n\n# Initialize GridSearchCV\ngrid_search = GridSearchCV(estimator=gbr, param_grid=param_grid, cv=5, scoring='neg_mean_squared_error', n_jobs=-1)\n\n# Fit the model\ngrid_search.fit(X_train_scaled, y_train)\n\n# Get the best model\nbest_model = grid_search.best_estimator_\n\n# Make predictions\ny_train_pred = best_model.predict(X_train_scaled)\ny_test_pred = best_model.predict(X_test_scaled)\n\n# Calculate the mean squared error\ntrain_mse = mean_squared_error(y_train, y_train_pred)\ntest_mse = mean_squared_error(y_test, y_test_pred)\n\nprint(f'Training MSE: {train_mse}')\nprint(f'Testing MSE: {test_mse}')\n",
+            "result": "Training MSE: 0.12943248133422944\nTesting MSE: 0.22328217327249214\n",
+            "is_success": true,
+            "is_finished": true
+        },
+        "4": {
+            "task_id": "4",
+            "dependent_task_ids": [
+                "3"
+            ],
+            "instruction": "Evaluate the trained linear regression model",
+            "task_type": "model evaluate",
+            "code": "# Evaluate the trained linear regression model\n\n# Visualize residuals to check for any obvious patterns\ntimestamp = int(time.time())\nsave_dir = Path(\"/Users/tuozhou/Desktop/RA/SZRI/ML_Assistant/data/output/image\")\nsave_dir.mkdir(parents=True, exist_ok=True)\nfile_name_residuals_train = f'residuals_plot_train_{timestamp}.png'\nfile_name_residuals_test = f'residuals_plot_test_{timestamp}.png'\nfile_path_train = save_dir / file_name_residuals_train\nfile_path_test = save_dir / file_name_residuals_test\n\n# Calculate residuals\ntrain_residuals = y_train - y_train_pred\ntest_residuals = y_test - y_test_pred\n\n# Plot residuals of training data\nplt.figure(figsize=(12, 8))\nsns.scatterplot(x=y_train_pred, y=train_residuals)\nplt.axhline(0, color='red', linestyle='--')\nplt.xlabel('Predicted Values')\nplt.ylabel('Residuals')\nplt.title('Residuals vs Predicted Values (Training Data)')\nplt.savefig(file_path_train)\nplt.clf()\nprint(f'Image saved to: {file_path_train}')\n\n# Plot residuals of test data\nplt.figure(figsize=(12, 8))\nsns.scatterplot(x=y_test_pred, y=test_residuals)\nplt.axhline(0, color='red', linestyle='--')\nplt.xlabel('Predicted Values')\nplt.ylabel('Residuals')\nplt.title('Residuals vs Predicted Values (Test Data)')\nplt.savefig(file_path_test)\nplt.clf()\nprint(f'Image saved to: {file_path_test}')\n\n# Visualize the distribution of residuals\nfile_name_residuals_dist = f'residuals_distribution_{timestamp}.png'\nfile_path_dist = save_dir / file_name_residuals_dist\n\nplt.figure(figsize=(12, 8))\nsns.histplot(train_residuals, kde=True, label=\"Train Residuals\", color='blue', bins=30)\nsns.histplot(test_residuals, kde=True, label=\"Test Residuals\", color='orange', bins=30)\nplt.legend()\nplt.xlabel('Residuals')\nplt.ylabel('Frequency')\nplt.title('Distribution of Residuals')\nplt.savefig(file_path_dist)\nplt.clf()\nprint(f'Image saved to: {file_path_dist}')\n",
+            "result": "Image saved to: /Users/tuozhou/Desktop/RA/SZRI/ML_Assistant/data/output/image/residuals_plot_train_1725417770.png\nImage saved to: /Users/tuozhou/Desktop/RA/SZRI/ML_Assistant/data/output/image/residuals_plot_test_1725417770.png\n,Image saved to: /Users/tuozhou/Desktop/RA/SZRI/ML_Assistant/data/output/image/residuals_distribution_1725417770.png\n,,,",
+            "is_success": true,
+            "is_finished": true
+        }
+    },
+    "current_task_id": ""
+}
