@@ -64,3 +64,5 @@ text2vec
 
 # agentica
 agentica
+
+gunicorn
