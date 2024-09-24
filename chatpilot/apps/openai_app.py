@@ -24,6 +24,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from loguru import logger
 from pydantic import BaseModel
 
+from ML_Assistant.examples.di.machine_learning_with_tools import main_generator
 from chatpilot.agentica_assistant import AgenticaAssistant
 from chatpilot.apps.auth_utils import (
     get_current_user,
@@ -46,7 +47,7 @@ from chatpilot.config import (
 )
 from chatpilot.constants import ERROR_MESSAGES
 from chatpilot.langchain_assistant import LangchainAssistant
-from examples.di.machine_learning_with_tools import main_generator
+# from examples.di.machine_learning_with_tools import main_generator
 from shared_queue import queue_empty, get_message
 
 app = FastAPI()

@@ -83,8 +83,8 @@ Analyze your previous code and error in [context] step by step, provide me with 
 Output a json following the format:
 ```json
 {{
-    "reflection": str = "Reflection on previous implementation",
-    "improved_impl": str = "Refined code after reflection."(Please do not wrap the code here in "```python```"),
+    "reflection": str = "Reflection on previous implementation", (Please do not contain " in the string)
+    "improved_impl": str = "Refined code after reflection."(Please do not wrap the code here in "```python```", Please do not contain " in the string.),
 }}
 ```
 """
