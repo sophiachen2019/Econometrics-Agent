@@ -10,7 +10,7 @@ exec(open('chatpilot/version.py').read())
 if sys.version_info < (3,):
     sys.exit('Sorry, Python3 is required.')
 
-with open('README.md', 'r', encoding='utf-8') as f:
+with open('README-chatpilot.md', 'r', encoding='utf-8') as f:
     readme = f.read()
 
 setup(
