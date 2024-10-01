@@ -13,7 +13,7 @@ import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import aiohttp
 import requests
@@ -24,7 +24,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from loguru import logger
 from pydantic import BaseModel
 
-from ML_Assistant.examples.di.machine_learning_with_tools import main_generator
+from ML_Assistant.examples.di.machine_learning_with_tools import main_generator_with_interpreter
 from chatpilot.agentica_assistant import AgenticaAssistant
 from chatpilot.apps.auth_utils import (
     get_current_user,
@@ -47,6 +47,7 @@ from chatpilot.config import (
 )
 from chatpilot.constants import ERROR_MESSAGES
 from chatpilot.langchain_assistant import LangchainAssistant
+from metagpt.roles.di.data_interpreter import DataInterpreter
 # from examples.di.machine_learning_with_tools import main_generator
 from shared_queue import queue_empty, get_message
 
@@ -78,6 +79,9 @@ app.state.MODELS = {}
 # Agent for Assistant
 app.state.AGENT = None
 app.state.MODEL_NAME = None
+# Key: user_id, Value: { "interpreter": DataInterpreter, "last_active": timestamp }
+app.state.USER_CONVERSATIONS: Dict[str, Dict] = {}
+app.state.conversation_lock = asyncio.Lock()
 
 # User request tracking
 user_request_tracker = defaultdict(lambda: {"daily": [], "minute": []})
@@ -119,6 +123,81 @@ async def request_rate_limiter(
     # 记录新的请求
     user_requests["daily"].append(now)
     user_requests["minute"].append(now)
+
+
+def openai_chat_completion(client, messages, model, stream=True, temperature=0.7, max_tokens=4095):
+    response = client.chat.completions.create(
+        messages=messages,
+        model=model,
+        stream=stream,
+        temperature=temperature,
+        max_tokens=max_tokens)
+
+    return response
+
+
+async def is_related_conversation(previous_messages: List, new_message: str) -> bool:
+    """
+    使用 LLM 判断新消息是否与现有会话相关。
+    """
+    # 实现此函数
+    if not previous_messages:
+        return False
+
+    # 将历史消息转换为字符串(每一个消息之间加一个动态数字的前缀"第几个问题")
+    previous_message = "\n".join([f"No.{i + 1} message: {message}" for i, message in enumerate(previous_messages)])
+
+    prompt = f"""
+    You are very good at determining whether a user's latest input is related to their previous input. If it is related, please output `true`, and if it is not, please output `false`. (Only output the JSON structure).
+    
+    You can refer to the following examples:
+    
+    ## Previous input:
+    i will give you my outlook email account and password, please help me login in and respond to an email to Lily Wang, the content is about thanks and I have sent an email to MEcon Office, I will wait for their response email.
+    my email account: zhoutuo@connect.hku.hk
+    password: ZT13637378245zt
+    ## Latest input:
+    my email account is zhoutuo@connect.hku
+    ## Your output:
+    {{"is_related": true}}
+    
+    ## Previous input:
+    i will give you my outlook email account and password, please help me login in and respond to an email to Lily Wang, the content is about thanks and I have sent an email to MEcon Office, I will wait for their response email.
+    my email account: zhoutuo@connect.hku.hk
+    password: ZT13637378245zt
+    ## Latest input:
+    Please help me conduct a linear regression prediction for the Boston house price dataset, and print out the regression summary statistics table for the estimated coefficients. Discuss the economic results based on regression tables.
+    ## Your output:
+    {{"is_related": false}}
+    
+    Alright, let's begin:
+    ## Previous input:
+    {previous_message}
+    ## Latest input:
+    {new_message}
+    ## Your output:
+    """
+
+    try:
+        response = openai_chat_completion(
+            client=app.state.CLIENT_MANAGER.get_client(),
+            model="gpt-4o",
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0,
+            stream=False
+        )
+        answer = response.choices[0].message.content.strip()
+        bracket_index = answer.find('{')
+        bracket_last = answer.rfind('}')
+        answer = answer[bracket_index:bracket_last + 1]
+        response_dict = json.loads(answer)
+        return True if response_dict.get("is_related", False) else False
+    except Exception as e:
+        logger.error(f"LLM 判断关联性时出错: {e}")
+        # 默认认为不相关，开启新对话
+        return False
 
 
 @app.middleware("http")
@@ -373,167 +452,6 @@ def proxy_other_request(api_key, base_url, path, body, method):
         return response_data
 
 
-# @app.api_route("/{path:path}", methods=["POST"])
-# async def proxy(
-#         path: str,
-#         request: Request,
-#         user=Depends(get_current_user),
-#         rate_limit=Depends(request_rate_limiter),
-# ):
-#     method = request.method
-#     logger.debug(f"Proxying request to OpenAI: {path}, method: {method}, "
-#                  f"user: {user.id} {user.name} {user.email} {user.role}")
-#
-#     body = await request.body()
-#
-#     try:
-#         body_dict = json.loads(body.decode("utf-8"))
-#
-#         logger.warning(f"body_dict: {body_dict}")
-#
-#         model_name = body_dict.get('model', DEFAULT_MODELS[0] if DEFAULT_MODELS else "gpt-3.5-turbo")
-#         if app.state.MODEL_NAME is None:
-#             app.state.MODEL_NAME = model_name
-#         max_tokens = body_dict.get("max_tokens", 1024)
-#         temperature = body_dict.get("temperature", 0.7)
-#         num_ctx = body_dict.get('num_ctx', 1024)
-#         messages = body_dict.get("messages", [])
-#         logger.debug(
-#             f"model_name: {model_name}, max_tokens: {max_tokens}, "
-#             f"num_ctx: {num_ctx}, messages size: {len(messages)}"
-#         )
-#         system_prompt = ""
-#         history = []
-#         for message in messages:
-#             if message["role"] == "user":
-#                 history.append(HumanMessage(content=str(message["content"])))
-#             elif message["role"] == "assistant":
-#                 history.append(AIMessage(content=str(message["content"])))
-#             elif message["role"] == "system":
-#                 system_prompt = str(message["content"])
-#         history = history[:-1]  # drop the last message, which is the current user question
-#         user_question = ""
-#         if messages and messages[-1]["role"] == "user":
-#             user_question = messages[-1]["content"]
-#
-#         if FRAMEWORK == "langchain":
-#             # Get the next key and base URL from the client manager
-#             api_key, base_url = app.state.CLIENT_MANAGER.get_next_key_base_url()
-#             show_api_key = api_key[:4] + "..." + api_key[-4:]
-#             logger.info(f"Using API key: {show_api_key}, base URL: {base_url}")
-#
-#             if not isinstance(user_question, str):
-#                 return proxy_other_request(api_key, base_url, path, body, method)
-#
-#             # Create a new ChatAgent instance for each request
-#             chat_agent = LangchainAssistant(
-#                 model_type=MODEL_TYPE,
-#                 model_name=model_name,
-#                 model_api_key=api_key,
-#                 model_api_base=base_url,
-#                 search_name="serper" if SERPER_API_KEY else "duckduckgo",
-#                 verbose=True,
-#                 temperature=temperature,
-#                 max_tokens=max_tokens,
-#                 max_context_tokens=num_ctx,
-#                 streaming=True,
-#                 max_iterations=2,
-#                 max_execution_time=60,
-#                 system_prompt=system_prompt,
-#                 agent_type=AGENT_TYPE,
-#             )
-#             logger.debug(chat_agent)
-#             events = await chat_agent.astream_run(user_question, chat_history=history)
-#             created = int(time.time())
-#
-#             async def event_generator():
-#                 """组装为OpenAI格式流式输出"""
-#                 async for event in events:
-#                     kind = event['event']
-#                     if kind in ['on_tool_start', 'on_chat_model_stream']:
-#                         if kind == "on_tool_start":
-#                             c = str(event['data'].get('input', ''))
-#                         else:
-#                             c = event['data']['chunk'].content
-#                             if not c:
-#                                 tool_call_chunks = event['data'].get("tool_call_chunks", [])
-#                                 if tool_call_chunks:
-#                                     c = tool_call_chunks[0].get("args", "")
-#                         if c:
-#                             data_structure = {
-#                                 "id": event.get('id', 'default_id'),
-#                                 "object": "chat.completion.chunk",
-#                                 "created": event.get('created', created),
-#                                 "model": model_name,
-#                                 "system_fingerprint": event.get('system_fingerprint', ''),
-#                                 "choices": [
-#                                     {
-#                                         "index": 0,
-#                                         "delta": {"content": c},
-#                                         "logprobs": None,
-#                                         "finish_reason": None
-#                                     }
-#                                 ]
-#                             }
-#                             formatted_data = f"data: {json.dumps(data_structure)}\n\n"
-#                             yield formatted_data.encode()
-#
-#                 formatted_data_done = f"data: [DONE]\n\n"
-#                 yield formatted_data_done.encode()
-#
-#             return StreamingResponse(event_generator(), media_type='text/event-stream')
-#         elif FRAMEWORK == "agentica":
-#             # Init Agent when first request
-#             if app.state.AGENT is None:
-#                 chat_agent = AgenticaAssistant(model_type=MODEL_TYPE, model_name=model_name)
-#                 app.state.AGENT = chat_agent
-#                 logger.debug(chat_agent)
-#             elif app.state.MODEL_NAME != model_name:
-#                 chat_agent = AgenticaAssistant(model_type=MODEL_TYPE, model_name=model_name)
-#                 app.state.AGENT = chat_agent
-#                 app.state.MODEL_NAME = model_name
-#                 logger.debug(chat_agent)
-#             else:
-#                 if history:
-#                     chat_agent = app.state.AGENT
-#                 else:
-#                     chat_agent = AgenticaAssistant(model_type=MODEL_TYPE, model_name=model_name)
-#                     app.state.AGENT = chat_agent
-#             events = chat_agent.stream_run(user_question)
-#             created = int(time.time())
-#
-#             def event_generator():
-#                 """组装为OpenAI格式流式输出"""
-#                 for event in events:
-#                     data_structure = {
-#                         "id": 'default_id',
-#                         "object": "chat.completion.chunk",
-#                         "created": created,
-#                         "model": model_name,
-#                         "system_fingerprint": '',
-#                         "choices": [
-#                             {
-#                                 "index": 0,
-#                                 "delta": {"content": event},
-#                                 "logprobs": None,
-#                                 "finish_reason": None
-#                             }
-#                         ]
-#                     }
-#                     formatted_data = f"data: {json.dumps(data_structure)}\n\n"
-#                     yield formatted_data.encode()
-#
-                # formatted_data_done = f"data: [DONE]\n\n"
-                # yield formatted_data_done.encode()
-#
-#             return StreamingResponse(event_generator(), media_type='text/event-stream')
-#         else:
-#             raise ValueError(f"Not support: {FRAMEWORK}")
-#     except Exception as e:
-#         logger.error(e)
-#         error_detail = "Server Connection Error"
-#         raise HTTPException(status_code=500, detail=error_detail)
-
 @app.api_route("/{path:path}", methods=["POST"])
 async def proxy(
         path: str,
@@ -547,141 +465,115 @@ async def proxy(
 
     body = await request.body()
 
-    def openai_chat_completion(client, messages, model, stream=True, temperature=0.7, max_tokens=4095):
-        response = client.chat.completions.create(
-            messages=messages,
-            model=model,
-            stream=stream,
-            temperature=temperature,
-            max_tokens=max_tokens)
+    # try:
+    body_dict = json.loads(body.decode("utf-8"))
 
-        return response
+    # logger.warning(f"body_dict: {body_dict}")
 
-    try:
-        body_dict = json.loads(body.decode("utf-8"))
+    model_name = body_dict.get('model', DEFAULT_MODELS[0] if DEFAULT_MODELS else "gpt-3.5-turbo")
+    if app.state.MODEL_NAME is None:
+        app.state.MODEL_NAME = model_name
+    max_tokens = body_dict.get("max_tokens", 1024)
+    temperature = body_dict.get("temperature", 0.7)
+    num_ctx = body_dict.get('num_ctx', 1024)
+    messages = body_dict.get("messages", [])
+    logger.debug(
+        f"model_name: {model_name}, max_tokens: {max_tokens}, "
+        f"num_ctx: {num_ctx}, messages size: {len(messages)}"
+    )
 
-        logger.warning(f"body_dict: {body_dict}")
+    # 获取最新的用户输入
+    if messages:
+        new_message = messages[-1].get('content', '')
+    else:
+        new_message = ""
 
-        model_name = body_dict.get('model', DEFAULT_MODELS[0] if DEFAULT_MODELS else "gpt-3.5-turbo")
-        if app.state.MODEL_NAME is None:
-            app.state.MODEL_NAME = model_name
-        max_tokens = body_dict.get("max_tokens", 1024)
-        temperature = body_dict.get("temperature", 0.7)
-        num_ctx = body_dict.get('num_ctx', 1024)
-        messages = body_dict.get("messages", [])
-        logger.debug(
-            f"model_name: {model_name}, max_tokens: {max_tokens}, "
-            f"num_ctx: {num_ctx}, messages size: {len(messages)}"
-        )
+    # 将最新用户之前的用户信息综合起来形成新的列表
+    if len(messages) > 2:
+        previous_messages = [message for message in messages[:-2] if message.get('role') == 'user']
+    else:
+        previous_messages = []
 
-        async def event_generator():
-            # response = openai_chat_completion(client=app.state.CLIENT_MANAGER.get_client(), messages=messages,
-            #                                   model=model_name,
-            #                                   temperature=temperature)
-            # full_answer = ""
-            # for event in response:
-            #     # logger.info(f"获取中间回答: {full_answer}")
-            #     if event.choices:
-            #         data_structure = {
-            #             "id": event.id,
-            #             "object": "chat.completion.chunk",
-            #             "created": event.created,
-            #             "model": model_name,
-            #             "system_fingerprint": "",
-            #             "choices": [
-            #                 {
-            #                     "index": 0,
-            #                     "delta": {"content": event.choices[0].delta.content},
-            #                     "logprobs": None,
-            #                     "finish_reason": None
-            #                 }
-            #             ]
-            #         }
-            #         formatted_data = f"data: {json.dumps(data_structure)}\n\n"
-            #         yield formatted_data.encode()
-            #
-            # image_path = "/Users/tuozhou/.cache/chatpilot/data/cache/image/generations/0c853876-b6c2-4bfd-9d79-4f7564b3d06b.png"
-            # with open(image_path, "rb") as image_file:
-            #     image_data = base64.b64encode(image_file.read()).decode('utf-8')
-            # # image_structure = {
-            # #     "type": "image",
-            # #     "data": "<img src='data:image/png;base64," + image_data + "'>"
-            # # }
-            # data_structure = {
-            #     "id": event.id,
-            #     "object": "chat.completion.chunk",
-            #     "created": event.created,
-            #     "model": model_name,
-            #     "system_fingerprint": "",
-            #     "choices": [
-            #         {
-            #             "index": 0,
-            #             "delta": {"content": "<img src='data:image/png;base64," + image_data + "'>"},
-            #             "logprobs": None,
-            #             "finish_reason": None
-            #         }
-            #     ]
-            # }
-            # formatted_image_data = f"data: {json.dumps(data_structure)}\n\n"
-            # yield formatted_image_data.encode()
-            #
-            # response = openai_chat_completion(client=app.state.CLIENT_MANAGER.get_client(), messages=messages, model=model_name,
-            #                                                 temperature=temperature)
-            # full_answer = ""
-            # for event in response:
-            #     # logger.info(f"获取中间回答: {full_answer}")
-            #     if event.choices:
-            #         data_structure = {
-            #             "id": event.id,
-            #             "object": "chat.completion.chunk",
-            #             "created": event.created,
-            #             "model": model_name,
-            #             "system_fingerprint": "",
-            #             "choices": [
-            #                 {
-            #                     "index": 0,
-            #                     "delta": {"content": event.choices[0].delta.content},
-            #                     "logprobs": None,
-            #                     "finish_reason": None
-            #                 }
-            #             ]
-            #         }
-            #         formatted_data = f"data: {json.dumps(data_structure)}\n\n"
-            #         yield formatted_data.encode()
-            #
-            # formatted_data_done = f"data: [DONE]\n\n"
-            # yield formatted_data_done.encode()
+    print(f"previous_messages: {previous_messages}")
+    print(f"new_message: {new_message}")
 
-            main_task = asyncio.create_task(main_generator(messages[-1]['content']))
+    if not new_message:
+        raise HTTPException(status_code=400, detail="No message content provided.")
 
-            while True:
-                if not queue_empty():
-                    message = await get_message()
-                    data_structure = {
-                        "id": str(uuid.uuid4()),
-                        "object": "chat.completion.chunk",
-                        "created": int(time.time()),
-                        "model": model_name,
-                        "choices": [
-                            {
-                                "index": 0,
-                                "delta": {"content": message},
-                                "finish_reason": None
-                            }
-                        ]
-                    }
-                    formatted_data = f"data: {json.dumps(data_structure)}\n\n"
-                    yield formatted_data.encode()
-                elif main_task.done():
-                    break
-                else:
-                    await asyncio.sleep(0.1)
+    async with app.state.conversation_lock:
+        # 使用 LLM 判断是否相关
+        related = await is_related_conversation(previous_messages, new_message)
+        logger.warning(f"question related: {related}")
 
-            if main_task.exception():
-                raise main_task.exception()
-        return StreamingResponse(event_generator(), media_type='text/event-stream')
+        if related:
+            # 使用现有会话
+            conversation = app.state.USER_CONVERSATIONS.get(user.id)
+            if conversation:
+                interpreter: DataInterpreter = conversation["interpreter"]
+                logger.warning(f"继续使用现有会话, user_id: {user.id}")
+            else:
+                # 如果没有现有会话，则创建新的
+                interpreter = DataInterpreter(use_reflection=True, tools=["<all>"])
+                app.state.USER_CONVERSATIONS[user.id] = {
+                    "interpreter": interpreter,
+                    "last_active": time.time()
+                }
+                logger.warning(f"开启新的会话, user_id: {user.id}")
+        else:
+            # 创建新的会话
+            # todo 检验一下是否要terminate之前的Jupyter kernel
+            interpreter = DataInterpreter(use_reflection=True, tools=["<all>"])
+            app.state.USER_CONVERSATIONS[user.id] = {
+                "interpreter": interpreter,
+                "last_active": time.time()
+            }
+            logger.warning(f"开启新的会话, user_id: {user.id}")
 
-    except Exception as e:
-        logger.error(e)
-        error_detail = "Server Connection Error"
-        raise HTTPException(status_code=500, detail=error_detail)
+        # 更新会话的最后活跃时间
+        if user.id in app.state.USER_CONVERSATIONS:
+            app.state.USER_CONVERSATIONS[user.id]["last_active"] = time.time()
+
+    # 处理会话逻辑
+    async def process_interpreter():
+        # 假设您需要将新消息传递给 DataInterpreter 的 run 方法
+        return await main_generator_with_interpreter(interpreter, new_message)
+
+    async def event_generator():
+
+        main_task = asyncio.create_task(process_interpreter())
+
+        while True:
+            if not queue_empty():
+                message = await get_message()
+                data_structure = {
+                    "id": str(uuid.uuid4()),
+                    "object": "chat.completion.chunk",
+                    "created": int(time.time()),
+                    "model": model_name,
+                    "choices": [
+                        {
+                            "index": 0,
+                            "delta": {"content": message},
+                            "finish_reason": None
+                        }
+                    ]
+                }
+                formatted_data = f"data: {json.dumps(data_structure)}\n\n"
+                yield formatted_data.encode()
+            elif main_task.done():
+                break
+            else:
+                await asyncio.sleep(0.1)
+
+        if main_task.exception():
+            raise main_task.exception()
+
+        app.state.USER_CONVERSATIONS[user.id]["interpreter"] = interpreter
+        # logger.warning(interpreter.planner.get_useful_memories())
+
+    return StreamingResponse(event_generator(), media_type='text/event-stream')
+
+    # except Exception as e:
+    #     logger.error(e)
+    #     error_detail = "Server Connection Error"
+    #     raise HTTPException(status_code=500, detail=error_detail)

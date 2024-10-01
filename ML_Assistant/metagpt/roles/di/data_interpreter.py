@@ -92,7 +92,7 @@ class DataInterpreter(Role):
     async def _plan_and_act(self) -> Message:
         try:
             rsp = await super()._plan_and_act()
-            await self.execute_code.terminate()
+            # await self.execute_code.terminate()
             return rsp
         except Exception as e:
             await self.execute_code.terminate()

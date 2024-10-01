@@ -62,6 +62,7 @@ def update_plan_from_rsp(rsp: str, current_plan: Plan):
             logger.warning(
                 "Current plan will take only the first generated task if the generated tasks are not a complete plan"
             )
+            current_plan.add_tasks(tasks)
         # handle a single task
         if current_plan.has_task_id(tasks[0].task_id):
             # replace an existing task

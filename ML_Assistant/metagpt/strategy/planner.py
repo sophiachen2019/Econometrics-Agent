@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import List
 
 from pydantic import BaseModel, Field
 
@@ -18,8 +19,10 @@ from metagpt.utils.common import remove_comments
 from shared_queue import log_execution
 
 STRUCTURAL_CONTEXT = """
-## User Requirement
-{user_requirement}
+## User Previous Requirement
+{user_previous_requirement}
+## User New Requirement
+{user_new_requirement}
 ## Context
 {context}
 ## Current Plan
@@ -66,9 +69,11 @@ class Planner(BaseModel):
     def current_task_id(self):
         return self.plan.current_task_id
 
-    async def update_plan(self, goal: str = "", max_tasks: int = 3, max_retries: int = 3):
-        if goal:
-            self.plan = Plan(goal=goal)
+    async def update_plan(self, goal: list[str] = [], max_tasks: int = 3, max_retries: int = 3):
+        if len(goal) == 1:
+            self.plan = Plan(goal=goal[-1].content)
+        elif len(goal) > 1:
+            self.plan.goal.append(goal[-1])
 
         plan_confirmed = False
         while not plan_confirmed:
@@ -149,13 +154,15 @@ class Planner(BaseModel):
 
     def get_useful_memories(self, task_exclude_field=None) -> list[Message]:
         """find useful memories only to reduce context length and improve performance"""
-        user_requirement = self.plan.goal
+        user_previous_requirement = "\n".join([goal for goal in self.plan.goal[:-1]])
+        user_new_requirement = self.plan.goal[-1]
         context = self.plan.context
         tasks = [task.dict(exclude=task_exclude_field) for task in self.plan.tasks]
         tasks = json.dumps(tasks, indent=4, ensure_ascii=False)
         current_task = self.plan.current_task.json() if self.plan.current_task else {}
         context = STRUCTURAL_CONTEXT.format(
-            user_requirement=user_requirement, context=context, tasks=tasks, current_task=current_task
+            user_previous_requirement=user_previous_requirement, user_new_requirement=user_new_requirement,
+            context=context, tasks=tasks, current_task=current_task
         )
         context_msg = [Message(content=context, role="user")]
 
