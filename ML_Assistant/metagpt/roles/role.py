@@ -492,8 +492,11 @@ class Role(SerializationMixin, ContextMixin, BaseModel):
         """first plan, then execute an action sequence, i.e. _think (of a plan) -> _act -> _act -> ... Use llm to come up with the plan dynamically."""
 
         # create initial plan and update it until confirmation
-        goal = self.rc.memory.get()[-1].content  # retreive latest user requirement
-        await self.planner.update_plan(goal=goal)
+        goal = self.rc.memory.get()  # retreive latest user requirement
+        if len(goal) == 1:
+            await self.planner.update_plan(goal=goal[-1].content)
+        elif len(goal) > 1:
+            await self.planner.update_plan_as_multi_dialogue(goal=goal[::2]) # only use the user requirements
 
         await log_execution("## Task Processing\n")
         # take on tasks until all finished

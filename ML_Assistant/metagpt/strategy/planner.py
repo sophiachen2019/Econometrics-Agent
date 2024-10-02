@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import List
 
 from pydantic import BaseModel, Field
 
@@ -26,6 +27,19 @@ STRUCTURAL_CONTEXT = """
 {tasks}
 ## Current Task
 {current_task}
+"""
+
+LAST_ROUND_STRUCTURAL_CONTEXT = """
+## User Previous Requirement
+{user_previous_requirement}
+## Previous Context
+{context}
+## Previous Plan
+{tasks}
+## Previous Task
+{current_task}
+## User New Requirement
+{user_new_requirement}
 """
 
 PLAN_STATUS = """
@@ -94,6 +108,36 @@ class Planner(BaseModel):
 
         self.working_memory.clear()
 
+    async def update_plan_as_multi_dialogue(self, goal: list[str] = [], max_tasks: int = 3, max_retries: int = 3):
+        separator = "\u0001" # 选择非打印字符作为分隔符
+        if goal:
+            self.plan.goal += f"{separator}{goal[-1].content}"
+
+        plan_confirmed = False
+        while not plan_confirmed:
+            context = self.get_last_round_memories()
+            rsp = await WritePlan().run_new_round_plan(context, max_tasks=max_tasks)
+            self.working_memory.add(Message(content=rsp, role="assistant", cause_by=WritePlan))
+
+            # precheck plan before asking reviews
+            is_plan_valid, error = precheck_update_plan_from_rsp(rsp, self.plan)
+            if not is_plan_valid and max_retries > 0:
+                error_msg = f"The generated plan is not valid with error: {error}, try regenerating, remember to generate either the whole plan or the single changed task only"
+                logger.warning(error_msg)
+                self.working_memory.add(Message(content=error_msg, role="assistant", cause_by=WritePlan))
+                max_retries -= 1
+                continue
+
+            _, plan_confirmed = await self.ask_review(trigger=ReviewConst.TASK_REVIEW_TRIGGER)
+
+        update_plan_from_rsp(rsp=rsp, current_plan=self.plan)
+        await log_execution("## New Plan RoadMap\n")
+        await log_execution("---\n")
+        await log_execution("```json\n" + rsp + "\n```\n")
+
+        self.working_memory.clear()
+
+
     async def process_task_result(self, task_result: TaskResult):
         # ask for acceptance, users can other refuse and change tasks in the plan
         review, task_result_confirmed = await self.ask_review(task_result)
@@ -156,6 +200,26 @@ class Planner(BaseModel):
         current_task = self.plan.current_task.json() if self.plan.current_task else {}
         context = STRUCTURAL_CONTEXT.format(
             user_requirement=user_requirement, context=context, tasks=tasks, current_task=current_task
+        )
+        context_msg = [Message(content=context, role="user")]
+
+        return context_msg + self.working_memory.get()
+
+    def get_last_round_memories(self, task_exclude_field=None) -> list[Message]:
+        """find last round memories only to reduce context length and improve performance"""
+        # 首先将 self.plan.goal 按照分隔符 '\u0001' 分割为列表
+        goal_list = self.plan.goal.split("\u0001")
+        # 获取所有的之前的需求
+        user_previous_requirement = "\n".join(goal_list[:-1])
+        # 获取最新的需求
+        user_new_requirement = goal_list[-1]
+        context = self.plan.context
+        tasks = [task.dict(exclude=task_exclude_field) for task in self.plan.tasks]
+        tasks = json.dumps(tasks, indent=4, ensure_ascii=False)
+        current_task = self.plan.current_task.json() if self.plan.current_task else {}
+        context = LAST_ROUND_STRUCTURAL_CONTEXT.format(
+            user_previous_requirement=user_previous_requirement, user_new_requirement=user_new_requirement,
+            context=context, tasks=tasks, current_task=current_task
         )
         context_msg = [Message(content=context, role="user")]
 
