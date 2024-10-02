@@ -1,5 +1,6 @@
 import asyncio
 
+from metagpt.actions import WriteAnalysisCode
 from metagpt.roles.di.data_interpreter import DataInterpreter
 from metagpt.utils.recovery_util import save_history
 from shared_queue import log_execution
@@ -15,16 +16,20 @@ async def main_generator(requirement: str):
     await log_execution("#### 🔥Starting main function\n")
     role = DataInterpreter(use_reflection=True, tools=["<all>"])
     await role.run(requirement)
+    role.set_actions([WriteAnalysisCode])
+    role._set_state(0)
     await role.run(requirement_2)
     save_history(role=role)
     await log_execution("#### Finished main function😊\n")
 
-# async def main_generator_with_interpreter(interpreter: DataInterpreter, requirement: str):
-#     await log_execution("#### 🔥Starting main function\n")
-#     role = interpreter  # 假设 'interpreter' 类似于 'role'
-#     await role.run(requirement)
-#     save_history(role=role)
-#     await log_execution("#### Finished main function😊\n")
+async def main_generator_with_interpreter(interpreter: DataInterpreter, requirement: str):
+    await log_execution("#### 🔥Starting main function\n")
+    role = interpreter  # 假设 'interpreter' 类似于 'role'
+    role.set_actions([WriteAnalysisCode])
+    role._set_state(0)
+    await role.run(requirement)
+    save_history(role=role)
+    await log_execution("#### Finished main function😊\n")
 
 
 if __name__ == "__main__":
@@ -36,6 +41,6 @@ if __name__ == "__main__":
     requirement = ("Please tell me 1+1=?")
 
     requirement_2 = (
-        "please login my email account and check the latest email from my boss, account: 123414141@hku.hk password: 12345678")
+        "please use the previous result add 2")
     # requirement = "This is a house price dataset, your goal is to predict the sale price of a property based on its features. The target column is SalePrice. Perform data analysis, data preprocessing, feature engineering, and modeling to predict the target. Report RMSE between the logarithm of the predicted value and the logarithm of the observed sales price on the eval data. Train data path: '/Users/tuozhou/Desktop/RA/SZRI/ML_Assistant/data/05_house-prices-advanced-regression-techniques/split_train.csv', eval data path: '/Users/tuozhou/Desktop/RA/SZRI/ML_Assistant/data/05_house-prices-advanced-regression-techniques/split_eval.csv'."
     asyncio.run(main_generator(requirement))

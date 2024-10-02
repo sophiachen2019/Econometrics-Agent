@@ -191,7 +191,7 @@ class DataInterpreter(Role):
         logger.info(f"ready to {todo.name}")
         use_reflection = counter > 0 and self.use_reflection  # only use reflection after the first trial
 
-        user_requirement = self.get_memories()[0].content
+        user_requirement = self.get_memories()[-1].content
 
         code = await todo.run(
             user_requirement=user_requirement,

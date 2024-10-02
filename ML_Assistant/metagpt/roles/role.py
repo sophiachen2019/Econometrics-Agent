@@ -493,7 +493,10 @@ class Role(SerializationMixin, ContextMixin, BaseModel):
 
         # create initial plan and update it until confirmation
         goal = self.rc.memory.get()  # retreive latest user requirement
-        await self.planner.update_plan(goal=goal[::2]) # only use the user requirements
+        if len(goal) == 1:
+            await self.planner.update_plan(goal=goal[-1].content)
+        elif len(goal) > 1:
+            await self.planner.update_plan_as_multi_dialogue(goal=goal[::2]) # only use the user requirements
 
         await log_execution("## Task Processing\n")
         # take on tasks until all finished
