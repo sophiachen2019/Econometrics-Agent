@@ -155,7 +155,7 @@ async def is_related_conversation(previous_messages: List, new_message: str) -> 
     ## Previous input:
     i will give you my outlook email account and password, please help me login in and respond to an email to Lily Wang, the content is about thanks and I have sent an email to MEcon Office, I will wait for their response email.
     my email account: zhoutuo@connect.hku.hk
-    password: ZT13637378245zt
+    password: Ztt13523565233zzt
     ## Latest input:
     my email account is zhoutuo@connect.hku
     ## Your output:
@@ -164,7 +164,7 @@ async def is_related_conversation(previous_messages: List, new_message: str) -> 
     ## Previous input:
     i will give you my outlook email account and password, please help me login in and respond to an email to Lily Wang, the content is about thanks and I have sent an email to MEcon Office, I will wait for their response email.
     my email account: zhoutuo@connect.hku.hk
-    password: ZT13637378245zt
+    password: Ztt13523565233zzt
     ## Latest input:
     Please help me conduct a linear regression prediction for the Boston house price dataset, and print out the regression summary statistics table for the estimated coefficients. Discuss the economic results based on regression tables.
     ## Your output:
@@ -488,14 +488,18 @@ async def proxy(
     else:
         new_message = ""
 
+    # todo if app.state.FILENAME:
+        # todo suffix_prompt = f"This is the dataset that will be used in the user requirement, the dataset's name is {app.state.FILENAME}."
+        # todo new_message = f"{new_message} {suffix_prompt}"
+
     # 将最新用户之前的用户信息综合起来形成新的列表
     if len(messages) > 2:
         previous_messages = [message for message in messages[:-2] if message.get('role') == 'user']
     else:
         previous_messages = []
 
-    print(f"previous_messages: {previous_messages}")
-    print(f"new_message: {new_message}")
+    # print(f"previous_messages: {previous_messages}")
+    # print(f"new_message: {new_message}")
 
     if not new_message:
         raise HTTPException(status_code=400, detail="No message content provided.")
