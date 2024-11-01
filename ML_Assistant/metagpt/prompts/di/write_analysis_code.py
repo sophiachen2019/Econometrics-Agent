@@ -1,5 +1,4 @@
-
-INTERPRETER_SYSTEM_MSG = """As a data scientist, you need to help user to achieve their goal step by step in a continuous Jupyter notebook. Since it is a notebook environment, don't use asyncio.run. Instead, use await if you need to call an async function."""
+INTERPRETER_SYSTEM_MSG = """As a econometrician, you need to help user to achieve their econometric analysis goal step by step in a continuous Jupyter notebook. Since it is a notebook environment, don't use asyncio.run. Instead, use await if you need to call an async function."""
 
 STRUCTUAL_PROMPT = """
 # User Requirement
@@ -15,10 +14,11 @@ STRUCTUAL_PROMPT = """
 - Take on Current Task if it is in Plan Status, otherwise, tackle User Requirement directly.
 - Ensure the output new code is executable in the same Jupyter notebook as the previous executed code.
 - Always prioritize using pre-defined tools for the same functionality.
-- When you need to generate an visualization content, please do not use plt.show(), but save the image into a local file and print the saving path(The saving path is always "/Users/tuozhou/Desktop/RA/SZRI/ML_Assistant/data/output/image", and the print statement code is always "print(f'Image saved to: {{file_path}}')"). For example:
+- If the current task has been well completed in the previous executed code, DO NOT GENERATE AND RUN AGAIN; instead, directly call the output variables from the previous executed code.
+- When you need to generate an visualization content, please do not use plt.show(), but save the image into a local file and print the saving path(The saving path is always "/home/kurtluo/GPT/image", and the print statement code is always "print(f'Image saved to: {{file_path}}')"). For example:
 ```
 timestamp = int(time.time())
-save_dir = Path("/Users/tuozhou/Desktop/RA/SZRI/ML_Assistant/data/output/image")
+save_dir = Path("/home/kurtluo/GPT/image")
 save_dir.mkdir(parents=True, exist_ok=True)
 file_name = f'correlation_matrix_{{timestamp}}.png'
 file_path = save_dir / file_name
@@ -100,7 +100,7 @@ Check latest data info to guide subsequent tasks.
 
 # Task
 Check code in finished tasks, print key variables to guide your following actions.
-Specifically, if it is a data analysis or machine learning task, print the the latest column information using the following code, with DataFrame variable from 'Finished Tasks' in place of df:
+Specifically, if it is a data analysis task, print the the latest column information using the following code, with DataFrame variable from 'Finished Tasks' in place of df:
 ```python
 from metagpt.tools.libs.data_preprocess import get_column_info
 

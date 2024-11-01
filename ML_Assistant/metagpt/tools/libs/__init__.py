@@ -6,18 +6,12 @@
 # @Desc    :
 from metagpt.tools.libs import (
     data_preprocess,
-    feature_engineering,
-    sd_engine,
-    gpt_v_generator,
-    web_scraping,
-    email_login,
+    econometric_algorithm,
+    econometric_optimization, 
 )
 
 _ = (
     data_preprocess,
-    feature_engineering,
-    sd_engine,
-    gpt_v_generator,
-    web_scraping,
-    email_login,
+    econometric_algorithm,
+    econometric_optimization, 
 )  # Avoid pre-commit error

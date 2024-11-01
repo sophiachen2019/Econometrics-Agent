@@ -21,7 +21,6 @@ from metagpt.schema import Message, Plan
 from metagpt.utils.common import CodeParser, remove_comments
 from shared_queue import log_execution
 
-
 class WriteAnalysisCode(Action):
     async def _debug_with_reflection(self, context: list[Message], working_memory: list[Message]):
         reflection_prompt = REFLECTION_PROMPT.format(
@@ -71,7 +70,6 @@ class WriteAnalysisCode(Action):
             code = CodeParser.parse_code(block=None, text=rsp)
 
         return code
-
 
 class CheckData(Action):
     async def run(self, plan: Plan) -> dict:

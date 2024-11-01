@@ -16,7 +16,6 @@ from metagpt.schema import Message, Plan, Task
 from metagpt.strategy.task_type import TaskType
 from metagpt.utils.common import CodeParser
 
-
 class WritePlan(Action):
     PROMPT_TEMPLATE: str = """
     # Context:
@@ -83,7 +82,6 @@ class WritePlan(Action):
         rsp = CodeParser.parse_code(block=None, text=rsp)
         return rsp
 
-
 def update_plan_from_rsp(rsp: str, current_plan: Plan):
     rsp = json.loads(rsp)
     tasks = [Task(**task_config) for task_config in rsp]
@@ -107,7 +105,6 @@ def update_plan_from_rsp(rsp: str, current_plan: Plan):
     else:
         # add tasks in general
         current_plan.add_tasks(tasks)
-
 
 def precheck_update_plan_from_rsp(rsp: str, current_plan: Plan) -> Tuple[bool, str]:
     temp_plan = deepcopy(current_plan)
