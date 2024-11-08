@@ -1,4 +1,6 @@
 from __future__ import annotations
+import sys
+sys.path.append("/home/tianyang/ChatInterpreter/ML_Assistant")
 from metagpt.tools.tool_registry import register_tool
 
 # Import basic packages
@@ -7,9 +9,8 @@ import math
 import pandas as pd
 
 # Import econometric algorithms
-import sys
-sys.path.append("/home/kurtluo/GPT/ChatInterpreter/ML_Assistant/metagpt/tools/libs")
-from econometric_algorithm import ordinary_least_square_regression, Panel_Data_OLS_regression, propensity_score_construction, propensity_score_regression, IV_2SLS_regression
+
+from metagpt.tools.libs.econometric_algorithm import ordinary_least_square_regression, Panel_Data_OLS_regression, propensity_score_construction, propensity_score_regression, IV_2SLS_regression
 
 #%%
 
