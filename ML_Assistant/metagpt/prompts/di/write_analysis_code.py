@@ -14,6 +14,7 @@ STRUCTUAL_PROMPT = """
 - Take on Current Task if it is in Plan Status, otherwise, tackle User Requirement directly.
 - Ensure the output new code is executable in the same Jupyter notebook as the previous executed code.
 - Always prioritize using pre-defined tools for the same functionality.
+- If the dataset has been loaded in the previous executed code, DO MAKE SURE TO FIND THE CORRECT VARIABLE NAME! IN NO SCENARIO should you "generate" a pseudo-dataset by yourself!
 - If the current task has been well completed in the previous executed code, DO NOT GENERATE AND RUN AGAIN; instead, directly call the output variables from the previous executed code.
 - When you need to generate an visualization content, please do not use plt.show(), but save the image into a local file and print the saving path(The saving path is always "/home/kurtluo/GPT/image", and the print statement code is always "print(f'Image saved to: {{file_path}}')"). For example:
 ```
@@ -83,8 +84,8 @@ Analyze your previous code and error in [context] step by step, provide me with 
 Output a json following the format:
 ```json
 {{
-    "reflection": str = "Reflection on previous implementation", (Please do not contain " in the string)
-    "improved_impl": str = "Refined code after reflection."(Please do not wrap the code here in "```python```", Please do not contain " in the string.),
+    "reflection": str = "Reflection on previous implementation", (Please do not include " in string content again)
+    "improved_impl": str = "Refined code after reflection."(Please do not wrap the code here in "```python```". Please do not include " in string content again),
 }}
 ```
 """

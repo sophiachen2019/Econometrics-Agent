@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
+import statsmodels.formula.api as smf
 from linearmodels import PanelOLS
 
 #%%
@@ -18,22 +19,22 @@ def ordinary_least_square_regression(dependent_variable, treatment_variable, cov
     Use Ordinary Least Square Regression method to estimate Average Treatment Effect (ATE) of 
     the treatment variable towards the dependent variable.
     NOTE THAT THIS FUNCTION DOES NOT RETURN THE FINAL REGRESSION TABLE! All tables can (and only can) be printed out during the function.
-    The final return is some clearly specified parameter or statistic within the regressions.
+    The final return is some clearly specified parameter or statistic within the regressions, or some regression model object within the function (by adjusting the argument input "target_type").
     
     Args:
         dependent_variable (pd.Series): Target dependent variable, which should not contain nan value.
         treatment_variable (pd.Series): Target treatment variable, which should not contain nan value.
         covariate_variables (pd.DataFrame or None): Proposed covariate variables. If user does not specify any covariate variable, this could be None. Otherwise, it should not contain nan value.
         cov_type (str or None): The covariance estimator used in the results. If not specified by user, this could be None.
-        target_type (str or None): Denote whether this function need to return any specific evaluation metric or any other content. If only want to output regression tables, this should be None. Also three possible inputs, "neg_pvalue" for the regression treatment variable coefficient p-value's negative value, "rsquared" for the adjusted R-squared value of the regression, and "final_model" for the final regression model.
-        output_tables (bool): Denote whether this function need to print out regression tables. If want to see the tabels, this should be True. If only want the evaluation metric outputs, this should be False.
+        target_type (str or None): Denote whether this function need to return any specific evaluation metric or any other content. If only want to print out regression tables, this should be None. Otherwise, three possible inputs are supported: "neg_pvalue" for the regression treatment variable coefficient p-value's negative value, "rsquared" for the adjusted R-squared value of the regression, and "final_model" for the final regression model.
+        output_tables (bool): Denote whether this function need to print out regression tables. If want to print out the tabels, this should be True. If only want the evaluation metric outputs, this should be False.
     """
     
     # Run the regression
     if covariate_variables is None:
         X = treatment_variable
     else:
-        X = pd.concat([treatment_variable, covariate_variables], axis = 1)
+        X = pd.concat([treatment_variable, covariate_variables], axis = 1).astype(float)
     if cov_type is None:
         regression = sm.OLS(dependent_variable, sm.add_constant(X)).fit()
     else:
@@ -58,7 +59,7 @@ def Panel_Data_OLS_regression(dependent_variable, treatment_variable, covariate_
     Use Ordinary Least Square Regression method to estimate Average Treatment Effect (ATE) of 
     the treatment variable towards the dependent variable, in the PANEL DATA format. This function also integrates PooledOLS method altogether.
     NOTE THAT THIS FUNCTION DOES NOT RETURN THE FINAL REGRESSION TABLE! All tables can (and only can) be printed out during the function.
-    The final return is some clearly specified parameter or statistic within the regressions.
+    The final return is some clearly specified parameter or statistic within the regressions, or some regression model object within the function (by adjusting the argument input "target_type").
     
     Args:
         dependent_variable (pd.Series): Target dependent variable, which should not contain nan value. The index of the series should be entity-time multi-index.
@@ -68,8 +69,8 @@ def Panel_Data_OLS_regression(dependent_variable, treatment_variable, covariate_
         time_effect (bool): Denote whether time effect is included in the PanelOLS regression.
         other_effect (pd.DataFrame or None): Denote whether other effects are included in the PanelOLS regression. If there are other effects required, this input should be a pd.DataFrame with the categorial variable column(s) and entity-time multi-index. If no other effects required, leave this input to be None.
         cov_type (str): The covariance estimator used in the results. Five covariance estimators are supported: "unadjusted" for homoskedastic residual, "robust" for heteroskedasticity control, "cluster_entity" for entity clustering, "cluster_time" for time clustering, and "cluster_both" for entity-time two-way clustering.
-        target_type (str or None): Denote whether this function need to return any specific evaluation metric or any other content. If only want to output regression tables, this should be None. Also three possible inputs, "neg_pvalue" for the regression treatment variable coefficient p-value's negative value, "rsquared" for the adjusted R-squared value of the regression, and "final_model" for the final regression model.
-        output_tables (bool): Denote whether this function need to print out regression tables. If want to see the tabels, this should be True. If only want the evaluation metric outputs, this should be False.
+        target_type (str or None): Denote whether this function need to return any specific evaluation metric or any other content. If only want to print out regression tables, this should be None. Otherwise, three possible inputs are supported: "neg_pvalue" for the regression treatment variable coefficient p-value's negative value, "rsquared" for the adjusted R-squared value of the regression, and "final_model" for the final regression model.
+        output_tables (bool): Denote whether this function need to print out regression tables. If want to print out the tabels, this should be True. If only want the evaluation metric outputs, this should be False.
     """
 
     # Check if inputs are proper formatted
@@ -89,19 +90,19 @@ def Panel_Data_OLS_regression(dependent_variable, treatment_variable, covariate_
     if covariate_variables is None:
         X = treatment_variable
     else:
-        X = pd.concat([treatment_variable, covariate_variables], axis = 1)
+        X = pd.concat([treatment_variable, covariate_variables], axis = 1).astype(float)
     if count_effects == 0:
         X = sm.add_constant(X)
     
     # Run the regression
     if cov_type in ["unadjusted", "robust"]:
-        regression = PanelOLS(dependent_variable, X, entity_effect = entity_effect, time_effect = time_effect, other_effect = other_effect).fit(cov_type = cov_type)
+        regression = PanelOLS(dependent_variable, X, entity_effects = entity_effect, time_effects = time_effect, other_effects = other_effect).fit(cov_type = cov_type)
     elif cov_type == "cluster_entity":
-        regression = PanelOLS(dependent_variable, X, entity_effect = entity_effect, time_effect = time_effect, other_effect = other_effect).fit(cov_type = "clustered", cluster_entity = True)
+        regression = PanelOLS(dependent_variable, X, entity_effects = entity_effect, time_effects = time_effect, other_effects = other_effect).fit(cov_type = "clustered", cluster_entity = True)
     elif cov_type == "cluster_time":
-        regression = PanelOLS(dependent_variable, X, entity_effect = entity_effect, time_effect = time_effect, other_effect = other_effect).fit(cov_type = "clustered", cluster_time = True)
+        regression = PanelOLS(dependent_variable, X, entity_effects = entity_effect, time_effects = time_effect, other_effects = other_effect).fit(cov_type = "clustered", cluster_time = True)
     elif cov_type == "cluster_both":
-        regression = PanelOLS(dependent_variable, X, entity_effect = entity_effect, time_effect = time_effect, other_effect = other_effect).fit(cov_type = "clustered", cluster_entity = True, cluster_time = True)
+        regression = PanelOLS(dependent_variable, X, entity_effects = entity_effect, time_effects = time_effect, other_effects = other_effect).fit(cov_type = "clustered", cluster_entity = True, cluster_time = True)
 
     # Output the final result. ATE is the coefficient of the predicted treatment variable
     if output_tables is True:
@@ -132,8 +133,8 @@ def propensity_score_construction(treatment_variable, covariate_variable):
     """
     
     # Directly apply Logistic regression method to estimate the propensity score
-    clf = sm.Logit(treatment_variable, sm.add_constant(covariate_variable)).fit()
-    result_series = pd.Series(clf.predict(sm.add_constant(covariate_variable)), index = covariate_variable.index)
+    clf = sm.Logit(treatment_variable, sm.add_constant(covariate_variable).astype(float)).fit()
+    result_series = pd.Series(clf.predict(sm.add_constant(covariate_variable).astype(float)), index = covariate_variable.index)
     result_series.name = "propensity_score"
     return result_series
 
@@ -145,7 +146,7 @@ def propensity_score_regression(dependent_variable, treatment_variable, propensi
     If user specifies to trim samples, this tool will implement sample trimming based on detailed parameters.
     The ATE is the coefficient of the target treatment variable in the final OLS regression.
     NOTE THAT THIS FUNCTION DOES NOT RETURN THE FINAL REGRESSION TABLE! All tables can (and only can) be printed out during the function.
-    The final return is some clearly specified parameter or statistic within the regressions.
+    The final return is some clearly specified parameter or statistic within the regressions, or some regression model object within the function (by adjusting the argument input "target_type").
     
     Args:
         dependent_variable (pd.Series): Target dependent variable, which should not contain nan value.
@@ -153,8 +154,8 @@ def propensity_score_regression(dependent_variable, treatment_variable, propensi
         propensity_score (pd.Series): Propensity score for each sample to receive treatment, which should not contain nan value.
         sample_trimming (list or None): A list containing propensity-score-based sample trimming requirement, for example, [0.05, 0.95]. This input should be left None if no sample trimming is required.
         cov_type (str or None): The covariance estimator used in the results. If not specified by user, this could be None.
-        target_type (str or None): Denote whether this function need to return any specific evaluation metric or any other content. If only want to output regression tables, this should be None. Also three possible inputs, "neg_pvalue" for the regression treatment variable coefficient p-value's negative value, "rsquared" for the adjusted R-squared value of the regression, and "final_model" for the final regression model.
-        output_tables (bool): Denote whether this function need to print out regression tables. If want to see the tabels, this should be True. If only want the evaluation metric outputs, this should be False.
+        target_type (str or None): Denote whether this function need to return any specific evaluation metric or any other content. If only want to print out regression tables, this should be None. Otherwise, three possible inputs are supported: "neg_pvalue" for the regression treatment variable coefficient p-value's negative value, "rsquared" for the adjusted R-squared value of the regression, and "final_model" for the final regression model.
+        output_tables (bool): Denote whether this function need to print out regression tables. If want to print out the tabels, this should be True. If only want the evaluation metric outputs, this should be False.
     """
     
     # Conduct sample trimming when required
@@ -213,7 +214,7 @@ def IV_2SLS_regression(dependent_variable, treatment_variable, IV_variable, cova
     Use Instrument Variable - Two Step Least Square (IV-2SLS) method to estimate Average Treatment Effect (ATE) of 
     the treatment variable towards the dependent variable, while ruling out endogeneiry in the original model.
     NOTE THAT THIS FUNCTION DOES NOT RETURN THE FINAL REGRESSION TABLE! All tables can (and only can) be printed out during the function.
-    The final return is some clearly specified parameter or statistic within the regressions.
+    The final return is some clearly specified parameter or statistic within the regressions, or some regression model object within the function (by adjusting the argument input "target_type").
 
     Args:
         dependent_variable (pd.Series): Target dependent variable, which should not contain nan value.
@@ -221,27 +222,27 @@ def IV_2SLS_regression(dependent_variable, treatment_variable, IV_variable, cova
         IV_variable (pd.Series or pd.DataFrame): Proposed instrument variable(s). Could have only one or multiple IVs. Should not contain nan value.
         covariate_variables (pd.DataFrame or None): Proposed covariate variables. If user does not specify any covariate variable, this could be None. Otherwise, it should not contain nan value.
         cov_type (str or None): The covariance estimator used in the results. If not specified by user, this could be None.
-        target_type (str or None): Denote whether this function need to return any specific evaluation metric or any other content. If only want to output regression tables, this should be None. Also three possible inputs, "neg_pvalue" for the regression treatment variable coefficient p-value's negative value, "rsquared" for the adjusted R-squared value of the regression, and "final_model" for the final regression model.
-        output_tables (bool): Denote whether this function need to print out regression tables. If want to see the tabels, this should be True. If only want the evaluation metric outputs, this should be False.
+        target_type (str or None): Denote whether this function need to return any specific evaluation metric or any other content. If only want to print out regression tables, this should be None. Otherwise, three possible inputs are supported: "neg_pvalue" for the regression treatment variable coefficient p-value's negative value, "rsquared" for the adjusted R-squared value of the regression, and "final_model" for the final regression model.
+        output_tables (bool): Denote whether this function need to print out regression tables. If want to print out the tabels, this should be True. If only want the evaluation metric outputs, this should be False.
     """
     
     # First step regression
     if covariate_variables is None:
         first_step_X = IV_variable
     else:
-        first_step_X = pd.concat([IV_variable, covariate_variables], axis = 1)
+        first_step_X = pd.concat([IV_variable, covariate_variables], axis = 1).astype(float)
     if cov_type is None:
         first_step_regression = sm.OLS(treatment_variable, sm.add_constant(first_step_X)).fit()
     else:
         first_step_regression = sm.OLS(treatment_variable, sm.add_constant(first_step_X)).fit(cov_type = cov_type)
     predicted_treatment_result = pd.Series(first_step_regression.predict(sm.add_constant(first_step_X)), index = treatment_variable.index)
-    predicted_treatment_result.name = treatment_variable.name + "_hat"
+    predicted_treatment_result.name = treatment_variable.name
 
     # Second step regression
     if covariate_variables is None:
         second_step_X = predicted_treatment_result
     else:
-        second_step_X = pd.concat([predicted_treatment_result, covariate_variables], axis = 1)
+        second_step_X = pd.concat([predicted_treatment_result, covariate_variables], axis = 1).astype(float)
     if cov_type is None:
         second_step_regression = sm.OLS(dependent_variable, sm.add_constant(second_step_X)).fit()
     else:
@@ -287,7 +288,7 @@ def IV_2SLS_IV_setting_test(dependent_variable, treatment_variable, IV_variable,
     if covariate_variables is None:
         restriction_test_X = treatment_variable
     else:
-        restriction_test_X = pd.concat([treatment_variable, covariate_variables], axis = 1)
+        restriction_test_X = pd.concat([treatment_variable, covariate_variables], axis = 1).astype(float)
     if cov_type is None:
         restriction_test_OLS = sm.OLS(dependent_variable, sm.add_constant(restriction_test_X)).fit()
     else:
@@ -319,7 +320,7 @@ def Static_Diff_in_Diff_regression(dependent_variable,
     the treatment variable towards the dependent variable, in the PANEL DATA format. This is the STATIC version, 
     denoting that there is only one time spot when all entities in the treatment group is being treated. In other word, it's not the staggered method.
     NOTE THAT THIS FUNCTION DOES NOT RETURN THE FINAL REGRESSION TABLE! All tables can (and only can) be printed out during the function.
-    The final return is some clearly specified parameter or statistic within the regressions.
+    The final return is some clearly specified parameter or statistic within the regressions, or some regression model object within the function (by adjusting the argument input "target_type").
     
     Args:
         dependent_variable (pd.Series): Target dependent variable, which should not contain nan value. The index of the series should be entity-time multi-index.
@@ -330,8 +331,8 @@ def Static_Diff_in_Diff_regression(dependent_variable,
         time_effect (bool): Denote whether time effect is included in the regression.
         other_effect (pd.DataFrame or None): Denote whether other effects are included in the regression. If there are other effects required, this input should be a pd.DataFrame with the categorial variable column(s) and entity-time multi-index. If no other effects required, leave this input to be None.
         cov_type (str): The covariance estimator used in the results. Five covariance estimators are supported: "unadjusted" for homoskedastic residual, "robust" for heteroskedasticity control, "cluster_entity" for entity clustering, "cluster_time" for time clustering, and "cluster_both" for entity-time two-way clustering.
-        target_type (str or None): Denote whether this function need to return any specific evaluation metric or any other content. If only want to output regression tables, this should be None. Also three possible inputs, "neg_pvalue" for the regression treatment variable coefficient p-value's negative value, "rsquared" for the adjusted R-squared value of the regression, and "final_model" for the final regression model.
-        output_tables (bool): Denote whether this function need to print out regression tables. If want to see the tabels, this should be True. If only want the evaluation metric outputs, this should be False.
+        target_type (str or None): Denote whether this function need to return any specific evaluation metric or any other content. If only want to print out regression tables, this should be None. Otherwise, three possible inputs are supported: "neg_pvalue" for the regression treatment variable coefficient p-value's negative value, "rsquared" for the adjusted R-squared value of the regression, and "final_model" for the final regression model.
+        output_tables (bool): Denote whether this function need to print out regression tables. If want to print out the tabels, this should be True. If only want the evaluation metric outputs, this should be False.
     """
     
     # Check if inputs are proper formatted
@@ -361,19 +362,19 @@ def Static_Diff_in_Diff_regression(dependent_variable,
     if covariate_variables is None:
         X = pd.concat([beta, treatment_entity_dummy, treatment_finished_dummy], axis = 1)
     else:
-        X = pd.concat([beta, treatment_entity_dummy, treatment_finished_dummy, covariate_variables], axis = 1)
+        X = pd.concat([beta, treatment_entity_dummy, treatment_finished_dummy, covariate_variables], axis = 1).astype(float)
     if count_effects == 0:
         X = sm.add_constant(X)
     
     # Run the regression
     if cov_type in ["unadjusted", "robust"]:
-        regression = PanelOLS(dependent_variable, X, entity_effect = entity_effect, time_effect = time_effect, other_effect = other_effect).fit(cov_type = cov_type)
+        regression = PanelOLS(dependent_variable, X, entity_effects = entity_effect, time_effects = time_effect, other_effects = other_effect).fit(cov_type = cov_type)
     elif cov_type == "cluster_entity":
-        regression = PanelOLS(dependent_variable, X, entity_effect = entity_effect, time_effect = time_effect, other_effect = other_effect).fit(cov_type = "clustered", cluster_entity = True)
+        regression = PanelOLS(dependent_variable, X, entity_effects = entity_effect, time_effects = time_effect, other_effects = other_effect).fit(cov_type = "clustered", cluster_entity = True)
     elif cov_type == "cluster_time":
-        regression = PanelOLS(dependent_variable, X, entity_effect = entity_effect, time_effect = time_effect, other_effect = other_effect).fit(cov_type = "clustered", cluster_time = True)
+        regression = PanelOLS(dependent_variable, X, entity_effects = entity_effect, time_effects = time_effect, other_effects = other_effect).fit(cov_type = "clustered", cluster_time = True)
     elif cov_type == "cluster_both":
-        regression = PanelOLS(dependent_variable, X, entity_effect = entity_effect, time_effect = time_effect, other_effect = other_effect).fit(cov_type = "clustered", cluster_entity = True, cluster_time = True)
+        regression = PanelOLS(dependent_variable, X, entity_effects = entity_effect, time_effects = time_effect, other_effects = other_effect).fit(cov_type = "clustered", cluster_entity = True, cluster_time = True)
 
     # Output the final result. ATE is the coefficient of the predicted treatment variable
     if output_tables is True:
@@ -386,11 +387,7 @@ def Static_Diff_in_Diff_regression(dependent_variable,
         return regression.rsquared
     elif target_type == "final_model":
         return regression
-    
-@register_tool(tags=["econometric algorithm"])
-def Static_Diff_in_Diff_Parallel_Trend_visualization():
-    pass  # TODO
-    
+
 @register_tool(tags=["econometric algorithm"])
 def Staggered_Diff_in_Diff_regression(dependent_variable, 
                                       entity_treatment_dummy, 
@@ -407,7 +404,7 @@ def Staggered_Diff_in_Diff_regression(dependent_variable,
     the treatment variable towards the dependent variable, in the PANEL DATA format. This is the STAGGERED version, 
     denoting that there could be multiple time spot when different entities in the treatment group are being gradually treated. In other word, it's not the static method.
     NOTE THAT THIS FUNCTION DOES NOT RETURN THE FINAL REGRESSION TABLE! All tables can (and only can) be printed out during the function.
-    The final return is some clearly specified parameter or statistic within the regressions.
+    The final return is some clearly specified parameter or statistic within the regressions, or some regression model object within the function (by adjusting the argument input "target_type").
     
     Args:
         dependent_variable (pd.Series): Target dependent variable, which should not contain nan value. The index of the series should be entity-time multi-index.
@@ -417,8 +414,8 @@ def Staggered_Diff_in_Diff_regression(dependent_variable,
         time_effect (bool): Denote whether time effect is included in the regression.
         other_effect (pd.DataFrame or None): Denote whether other effects are included in the regression. If there are other effects required, this input should be a pd.DataFrame with the categorial variable column(s) and entity-time multi-index. If no other effects required, leave this input to be None.
         cov_type (str): The covariance estimator used in the results. Five covariance estimators are supported: "unadjusted" for homoskedastic residual, "robust" for heteroskedasticity control, "cluster_entity" for entity clustering, "cluster_time" for time clustering, and "cluster_both" for entity-time two-way clustering.
-        target_type (str or None): Denote whether this function need to return any specific evaluation metric or any other content. If only want to output regression tables, this should be None. Also three possible inputs, "neg_pvalue" for the regression treatment variable coefficient p-value's negative value, "rsquared" for the adjusted R-squared value of the regression, and "final_model" for the final regression model.
-        output_tables (bool): Denote whether this function need to print out regression tables. If want to see the tabels, this should be True. If only want the evaluation metric outputs, this should be False.
+        target_type (str or None): Denote whether this function need to return any specific evaluation metric or any other content. If only want to print out regression tables, this should be None. Otherwise, three possible inputs are supported: "neg_pvalue" for the regression treatment variable coefficient p-value's negative value, "rsquared" for the adjusted R-squared value of the regression, and "final_model" for the final regression model.
+        output_tables (bool): Denote whether this function need to print out regression tables. If want to print out the tabels, this should be True. If only want the evaluation metric outputs, this should be False.
     """
     
     # Check if inputs are proper formatted
@@ -443,19 +440,19 @@ def Staggered_Diff_in_Diff_regression(dependent_variable,
     if covariate_variables is None:
         X = entity_treatment_dummy
     else:
-        X = pd.concat([entity_treatment_dummy, covariate_variables], axis = 1)
+        X = pd.concat([entity_treatment_dummy, covariate_variables], axis = 1).astype(float)
     if count_effects == 0:
         X = sm.add_constant(X)
     
     # Run the regression
     if cov_type in ["unadjusted", "robust"]:
-        regression = PanelOLS(dependent_variable, X, entity_effect = entity_effect, time_effect = time_effect, other_effect = other_effect).fit(cov_type = cov_type)
+        regression = PanelOLS(dependent_variable, X, entity_effects = entity_effect, time_effects = time_effect, other_effects = other_effect).fit(cov_type = cov_type)
     elif cov_type == "cluster_entity":
-        regression = PanelOLS(dependent_variable, X, entity_effect = entity_effect, time_effect = time_effect, other_effect = other_effect).fit(cov_type = "clustered", cluster_entity = True)
+        regression = PanelOLS(dependent_variable, X, entity_effects = entity_effect, time_effects = time_effect, other_effects = other_effect).fit(cov_type = "clustered", cluster_entity = True)
     elif cov_type == "cluster_time":
-        regression = PanelOLS(dependent_variable, X, entity_effect = entity_effect, time_effect = time_effect, other_effect = other_effect).fit(cov_type = "clustered", cluster_time = True)
+        regression = PanelOLS(dependent_variable, X, entity_effects = entity_effect, time_effects = time_effect, other_effect = other_effect).fit(cov_type = "clustered", cluster_time = True)
     elif cov_type == "cluster_both":
-        regression = PanelOLS(dependent_variable, X, entity_effect = entity_effect, time_effect = time_effect, other_effect = other_effect).fit(cov_type = "clustered", cluster_entity = True, cluster_time = True)
+        regression = PanelOLS(dependent_variable, X, entity_effects = entity_effect, time_effects = time_effect, other_effect = other_effect).fit(cov_type = "clustered", cluster_entity = True, cluster_time = True)
 
     # Output the final result. ATE is the coefficient of the predicted treatment variable
     if output_tables is True:
@@ -488,7 +485,7 @@ def Staggered_Diff_in_Diff_Event_Study_regression(dependent_variable,
     denoting that there could be multiple time spot when different entities in the treatment group are being gradually treated. In other word, it's not the static method.
     Also, this is the event study version, denoting that there should be enough amount of different treatment implementation time spots (more than see_back_length + see_forward_length).
     NOTE THAT THIS FUNCTION DOES NOT RETURN THE FINAL REGRESSION TABLE! All tables can (and only can) be printed out during the function.
-    The final return is some clearly specified parameter or statistic within the regressions.
+    The final return is some clearly specified parameter or statistic within the regressions, or some regression model object within the function (by adjusting the argument input "target_type").
     
     Args:
         dependent_variable (pd.Series): Target dependent variable, which should not contain nan value. The index of the series should be entity-time multi-index.
@@ -500,8 +497,8 @@ def Staggered_Diff_in_Diff_Event_Study_regression(dependent_variable,
         time_effect (bool): Denote whether time effect is included in the regression.
         other_effect (pd.DataFrame or None): Denote whether other effects are included in the regression. If there are other effects required, this input should be a pd.DataFrame with the categorial variable column(s) and entity-time multi-index. If no other effects required, leave this input to be None.
         cov_type (str): The covariance estimator used in the results. Five covariance estimators are supported: "unadjusted" for homoskedastic residual, "robust" for heteroskedasticity control, "cluster_entity" for entity clustering, "cluster_time" for time clustering, and "cluster_both" for entity-time two-way clustering.
-        target_type (str or None): Denote whether this function need to return any specific evaluation metric or any other content. If only want to output regression tables, this should be None. Also three possible inputs, "neg_pvalue" for the regression treatment variable coefficient p-value's negative value, "rsquared" for the adjusted R-squared value of the regression, and "final_model" for the final regression model.
-        output_tables (bool): Denote whether this function need to print out regression tables. If want to see the tabels, this should be True. If only want the evaluation metric outputs, this should be False.
+        target_type (str or None): Denote whether this function need to return any specific evaluation metric or any other content. If only want to print out regression tables, this should be None. Otherwise, three possible inputs are supported: "neg_pvalue" for the regression treatment variable coefficient p-value's negative value, "rsquared" for the adjusted R-squared value of the regression, and "final_model" for the final regression model.
+        output_tables (bool): Denote whether this function need to print out regression tables. If want to print out the tabels, this should be True. If only want the evaluation metric outputs, this should be False.
     """
     
     # Check if inputs are proper formatted
@@ -527,8 +524,8 @@ def Staggered_Diff_in_Diff_Event_Study_regression(dependent_variable,
     entity_index_name, time_index_name = entity_treatment_dummy.index.names[0], entity_treatment_dummy.index.names[1]
     treatment_name = entity_treatment_dummy.name
     data_df = entity_treatment_dummy.reset_index()
-    all_entity_list = list(data_df.entity_index_name.unique())
-    all_time_list = list(data_df.time_index_name.unique())
+    all_entity_list = list(data_df[entity_index_name].unique())
+    all_time_list = list(data_df[time_index_name].unique())
     all_time_list.sort()
     policy_implementation_time_record_list = []
     for each_entity in all_entity_list:
@@ -563,30 +560,30 @@ def Staggered_Diff_in_Diff_Event_Study_regression(dependent_variable,
     Lead_and_Lag_column_name_list = Lead_column_name_list + ["D0"] + Lag_column_name_list
     
     # Calculate the values for each dummy variable
-    considered_data_df = data_df[["entity", "time"]]
+    considered_data_df = data_df[[entity_index_name, time_index_name]]
     considered_data_df[Lead_and_Lag_column_name_list] = np.nan
     for each_entity in all_entity_list:
         temp_df = data_df[data_df[entity_index_name] == each_entity]
         check_series = temp_df[treatment_name] - temp_df[treatment_name].shift().fillna(0)
-        if check_series[check_series == 1].shape[0] == 0:  # If the state never implement the policy
-            considered_data_df.loc[considered_data_df["entity"] == each_entity, Lead_and_Lag_column_name_list] = 0
+        if check_series[check_series == 1].shape[0] == 0:  # If the state never implement the policy, for this version no indicator is added. So do not consider it here.  # TODO
+            considered_data_df.loc[considered_data_df[entity_index_name] == each_entity, Lead_and_Lag_column_name_list] = 0
             continue
-        # If the state always implement the policy, for this version such case should already be removed. So do not consider it here.
+        # If the state always implement the policy, for this version such case should already be removed. So do not consider it here.  # TODO
         policy_time_index = check_series[check_series == 1].index[0]
         for each_index in temp_df.index:
             corresponding_each_time = temp_df.loc[each_index, time_index_name]
             if each_index - policy_time_index <= -see_back_length:
-                considered_data_df.loc[(considered_data_df["entity"] == each_entity) & (considered_data_df["time"] == corresponding_each_time), "Lead_D" + str(see_back_length) + "+"] = 1
+                considered_data_df.loc[(considered_data_df[entity_index_name] == each_entity) & (considered_data_df[time_index_name] == corresponding_each_time), "Lead_D" + str(see_back_length) + "+"] = 1
             elif each_index - policy_time_index > -see_back_length and each_index - policy_time_index < -1:
-                considered_data_df.loc[(considered_data_df["entity"] == each_entity) & (considered_data_df["time"] == corresponding_each_time), "Lead_D" + str(policy_time_index - each_index)] = 1
+                considered_data_df.loc[(considered_data_df[entity_index_name] == each_entity) & (considered_data_df[time_index_name] == corresponding_each_time), "Lead_D" + str(policy_time_index - each_index)] = 1
             elif each_index == policy_time_index:
-                considered_data_df.loc[(considered_data_df["entity"] == each_entity) & (considered_data_df["time"] == corresponding_each_time), "D0"] = 1
+                considered_data_df.loc[(considered_data_df[entity_index_name] == each_entity) & (considered_data_df[time_index_name] == corresponding_each_time), "D0"] = 1
             elif each_index - policy_time_index > 0 and each_index - policy_time_index < see_forward_length:
-                considered_data_df.loc[(considered_data_df["entity"] == each_entity) & (considered_data_df["time"] == corresponding_each_time), "Lag_D" + str(each_index - policy_time_index)] = 1
+                considered_data_df.loc[(considered_data_df[entity_index_name] == each_entity) & (considered_data_df[time_index_name] == corresponding_each_time), "Lag_D" + str(each_index - policy_time_index)] = 1
             elif each_index - policy_time_index >= see_forward_length:
-                considered_data_df.loc[(considered_data_df["entity"] == each_entity) & (considered_data_df["time"] == corresponding_each_time), "Lag_D" + str(see_forward_length) + "+"] = 1
-        considered_data_df.loc[considered_data_df["entity"] == each_entity, Lead_and_Lag_column_name_list] = considered_data_df.loc[considered_data_df["entity"] == each_entity, Lead_and_Lag_column_name_list].fillna(0)
-    considered_data_df = considered_data_df.set_index(["entity", "time"])
+                considered_data_df.loc[(considered_data_df[entity_index_name] == each_entity) & (considered_data_df[time_index_name] == corresponding_each_time), "Lag_D" + str(see_forward_length) + "+"] = 1
+        considered_data_df.loc[considered_data_df[entity_index_name] == each_entity, Lead_and_Lag_column_name_list] = considered_data_df.loc[considered_data_df[entity_index_name] == each_entity, Lead_and_Lag_column_name_list].fillna(0)
+    considered_data_df = considered_data_df.set_index([entity_index_name, time_index_name])
     
     # =========================================================================
 
@@ -594,17 +591,19 @@ def Staggered_Diff_in_Diff_Event_Study_regression(dependent_variable,
     if covariate_variables is None:
         X = considered_data_df
     else:
-        X = pd.concat([considered_data_df, covariate_variables], axis = 1)
-
+        X = pd.concat([considered_data_df, covariate_variables], axis = 1).astype(float)
+    if count_effects == 0:
+        X = sm.add_constant(X)
+        
     # Run the regression
     if cov_type in ["unadjusted", "robust"]:
-        regression = PanelOLS(dependent_variable, X, entity_effect = entity_effect, time_effect = time_effect, other_effect = other_effect).fit(cov_type = cov_type)
+        regression = PanelOLS(dependent_variable, X, entity_effects = entity_effect, time_effects = time_effect, other_effects = other_effect).fit(cov_type = cov_type)
     elif cov_type == "cluster_entity":
-        regression = PanelOLS(dependent_variable, X, entity_effect = entity_effect, time_effect = time_effect, other_effect = other_effect).fit(cov_type = "clustered", cluster_entity = True)
+        regression = PanelOLS(dependent_variable, X, entity_effects = entity_effect, time_effects = time_effect, other_effects = other_effect).fit(cov_type = "clustered", cluster_entity = True)
     elif cov_type == "cluster_time":
-        regression = PanelOLS(dependent_variable, X, entity_effect = entity_effect, time_effect = time_effect, other_effect = other_effect).fit(cov_type = "clustered", cluster_time = True)
+        regression = PanelOLS(dependent_variable, X, entity_effects = entity_effect, time_effects = time_effect, other_effects = other_effect).fit(cov_type = "clustered", cluster_time = True)
     elif cov_type == "cluster_both":
-        regression = PanelOLS(dependent_variable, X, entity_effect = entity_effect, time_effect = time_effect, other_effect = other_effect).fit(cov_type = "clustered", cluster_entity = True, cluster_time = True)
+        regression = PanelOLS(dependent_variable, X, entity_effects = entity_effect, time_effects = time_effect, other_effects = other_effect).fit(cov_type = "clustered", cluster_entity = True, cluster_time = True)
 
     # Output the final result. ATE is the coefficient of the predicted treatment variable
     if output_tables is True:
@@ -618,57 +617,143 @@ def Staggered_Diff_in_Diff_Event_Study_regression(dependent_variable,
     elif target_type == "final_model":
         return regression
     
-# @register_tool(tags=["econometric algorithm"])
-# def Staggered_Diff_in_Diff_Event_Study_visualization():
-#     pass  # TODO
+@register_tool(tags=["econometric algorithm"])
+def Staggered_Diff_in_Diff_Event_Study_visualization(regression_model, see_back_length: int = 4, see_forward_length: int = 3):
     
-# #%%
+    '''
+    Visualize the Staggered Difference-in-Difference Event Study result. Note that this function needs the regression result from the previously defined function
+    "Staggered_Diff_in_Diff_Event_Study_regression()", and need to set the input parameters "see_back_length" and "see_forward_length" well matched with the regression result.
+    
+    Args:
+        regression_model (linearmodels.PanelOLS): The regression model returned from the previously defined function "Staggered_Diff_in_Diff_Event_Study_regression()", with the input 'target_type == "final_model"'.
+        see_back_length (int): A positive int denote the length of see-back observation. 
+        see_forward_length (int): A positive int denote the length of see-forward observation. 
+    '''
+    
+    # Construct Lead-Lag Dummy Variables (set Lead_D1 as default)
+    Lead_column_name_list = ["Lead_D" + str(see_back_length) + "+"]
+    for i in np.arange(see_back_length - 1, 1, -1):
+        Lead_column_name_list.append("Lead_D" + str(i))
+    Lag_column_name_list = []
+    for i in np.arange(1, see_forward_length, 1):
+        Lag_column_name_list.append("Lag_D" + str(i))
+    Lag_column_name_list.append("Lag_D" + str(see_forward_length) + "+")
+    Lead_and_Lag_column_name_list = Lead_column_name_list + ["D0"] + Lag_column_name_list
+    
+    # Output the graph
+    plt.plot(regression_model.params[Lead_and_Lag_column_name_list])
+    plt.xticks(list(range(len(Lead_and_Lag_column_name_list))), Lead_and_Lag_column_name_list)
+    plt.ylabel("Estimated Coefficients")
+    plt.axhline(y = 0, color = "g", linestyle = "--")
+    plt.axvline(x = 2.5, color = "g", linestyle = "--")
+    for each_x_count in range(len(Lead_and_Lag_column_name_list)):
+        each_x = regression_model.conf_int().index[each_x_count]
+        plt.plot([each_x_count - 1 - 0.1, each_x_count - 1 + 0.1], [regression_model.conf_int().loc[each_x, "lower"], regression_model.conf_int().loc[each_x, "lower"]], color = "#f44336")
+        plt.plot([each_x_count - 1 - 0.1, each_x_count - 1 + 0.1], [regression_model.conf_int().loc[each_x, "upper"], regression_model.conf_int().loc[each_x, "upper"]], color = "#f44336")
+        plt.plot([each_x, each_x], [regression_model.conf_int().loc[each_x, "lower"], regression_model.conf_int().loc[each_x, "upper"]], color = "#f44336")
+        
+#%%
 
-# @register_tool(tags=["econometric algorithm"])
-# def Regression_Discontinuity_Design_regression():
-#     pass  # TODO
+@register_tool(tags=["econometric algorithm"])
+def Fuzzy_Regression_Discontinuity_Design_regression(dependent_variable, 
+                                                     entity_treatment_dummy, 
+                                                     selection_variable, 
+                                                     covariate_variables, 
+                                                     selection_cutoff, 
+                                                     selection_bandwidth, 
+                                                     kernel_choice = "uniform", 
+                                                     cov_info = "nonrobust", 
+                                                     target_type = None, 
+                                                     output_tables = False):
+    
+    """
+    Use Two-step Fuzzy Regression Discontinuity Design (Fuzzy RDD) method to estimate Average Treatment Effect (ATE) of 
+    the treatment variable towards the dependent variable. This is the Fuzzy version, denoting that there could be higher possibility, 
+    but not for sure, for an entity with treatment variable above the cutoff to receive the final treatment. In other word, it's not the Sharp method.
+    NOTE THAT THIS FUNCTION DOES NOT RETURN THE FINAL REGRESSION TABLE! All tables can (and only can) be printed out during the function.
+    The final return is some clearly specified parameter or statistic within the regressions, or some regression model object within the function (by adjusting the argument input "target_type").
+    
+    Args:
+        dependent_variable (pd.Series): Target dependent variable, which should not contain nan value.
+        entity_treatment_dummy (pd.Series): A dummy variables series denoting whether the treatment is implemented towards the entity. This input should not contain nan value.
+        selection_variable (pd.Series): Target selection variable to determine the possibility for the entity to receive treatment, which should not contain nan value.
+        covariate_variables (pd.DataFrame or None): Proposed covariate variables. If user does not specify any covariate variable, this could be None. Otherwise, it should not contain nan value.
+        treatment_cutoff (float): Denote the threshold of the treatment variable, above which the entity will have higher changce to receive the final treatment.
+        treatment_bandwidth (float): Denote the bandwidth to consider in this study.
+        kernel_choice (str): Denote the choice of kernel function used in this analysis. Default is "uniform" that gives equal weights to all samples in the dataset. Can also accept "triangle" and "Epanechnikov".
+        cov_info (str or dict): The covariance estimator used in the results. Four covariance estimators are supported: If no adjustment, input "nonrobust"; If heteroskedasticity-consistent adjustment (allows "HC0", "HC1", "HC2", "HC3"), take "HC0" as example, input "HC0"; If heteroskedasticity and autocorrelation consistent adjustment (HAC) with integer lag terms, take maxlags equal to 5 for example, input {"HAV": 5}; If cluster adjustment with the target groups variable named "groups" (pd.Series or pd.dataframe), input {"cluster": groups}.
+        target_type (str or None): Denote whether this function need to return any specific evaluation metric or any other content. If only want to print out regression tables, this should be None. Otherwise, two possible inputs are supported: "estimator" for final Fuzzy RDD estimator towards the causal effect of the treatment variable, and "final_models" for the two-step regression models in a list, with the first one as the first-step model and the second one as the second-step model.
+        output_tables (bool): Denote whether this function need to print out regression tables. If want to print out the tabels, this should be True. If only want the evaluation metric outputs, this should be False.
+    """
+    
+    # Check if inputs are proper formatted
+    if kernel_choice not in ["uniform", "triangle", "Epanechnikov"]:
+        raise RuntimeError("Kernel function choice currently only supports 'uniform', 'triangle' and 'Epanechnikov'!")
+    if type(cov_info) == str and cov_info not in ["nonrobust", "HC0", "HC1", "HC2", "HC3"]:
+        raise RuntimeError("Covariance type input unsupported! This function supports 'nonrobust', 'HC0', 'HC1', 'HC2', 'HC3', 'HAC' (with maxlags input) and 'cluster' (with target groups) as possible inputs!")
+    elif type(cov_info) == dict and list(cov_info.keys())[0] not in ["HAC", "cluster"]:
+        raise RuntimeError("Covariance type input unsupported! This function supports 'nonrobust', 'HC0', 'HC1', 'HC2', 'HC3', 'HAC' (with maxlags input) and 'cluster' (with target groups) as possible inputs!")
+    if selection_bandwidth <= 0:
+        raise RuntimeError("Treatment bandwidth input MUST BE LARGER THAN 0! PLEASE CHECK!")
+    if selection_variable[selection_variable > selection_cutoff].shape[0] == 0 or selection_variable[selection_variable < selection_cutoff].shape[0] == 0:
+        raise RuntimeError()
+        
+    # =========================================================================
 
-# @register_tool(tags=["econometric algorithm"])
-# def Regression_Discontinuity_Design_visualization():
-#     pass  # TODO
+    # Construct variables
+    selected_selection_variable = selection_variable[(selection_variable >= selection_cutoff - selection_bandwidth) & (selection_variable <= selection_cutoff + selection_bandwidth)]
+    dependent_variable = dependent_variable.loc[selected_selection_variable.index]
+    entity_treatment_dummy = entity_treatment_dummy.loc[selected_selection_variable.index]
+    if covariate_variables is not None:
+        covariate_variables = covariate_variables.loc[selected_selection_variable.index].astype(float)
+    if type(cov_info) == dict and list(cov_info.keys())[0] == "cluster":
+        cov_info["cluster"] = cov_info["cluster"].loc[selected_selection_variable.index]
+    should_be_treated_dummy = selected_selection_variable.map(lambda x: 1 if x >= selection_cutoff else 0)
+    should_be_treated_dummy.name = selected_selection_variable.name + "_dummy"
+    demeaned_selected_selection_variable = selected_selection_variable - selection_cutoff
+    demeaned_selected_selection_variable.name = "demeaned_" + selected_selection_variable.name
+    demeaned_selected_selection_interaction_variable = demeaned_selected_selection_variable * should_be_treated_dummy
+    demeaned_selected_selection_interaction_variable.name = "demeaned_interaction_" + selected_selection_variable.name
+    
+    # Construct weightings
+    if kernel_choice == "uniform":
+        weight = pd.Series(index = selected_selection_variable.index).fillna(1 / selected_selection_variable.shape[0])
+    elif kernel_choice == "triangle":
+        weight =  1 - ((selected_selection_variable - selection_cutoff) / selection_bandwidth).abs()
+    elif kernel_choice == "Epanechnikov":
+        weight = selected_selection_variable.map(lambda x: 0.75 * (1 - np.abs(((x - selection_cutoff) / selection_bandwidth)) ** 2))
 
-# #%%
-# #%%
-# #%%
-# #%%
-# #%%
-# #%%
+    # Construct formul and dataset
+    if covariate_variables is not None:
+        regression_formula_1 = dependent_variable.name + " ~ " + should_be_treated_dummy.name + " + " + demeaned_selected_selection_variable.name + " + " + demeaned_selected_selection_interaction_variable.name + " + " + " + ".join(list(covariate_variables.columns))
+        regression_formula_2 = entity_treatment_dummy.name + " ~ " + should_be_treated_dummy.name + " + " + demeaned_selected_selection_variable.name + " + " + demeaned_selected_selection_interaction_variable.name + " + " + " + ".join(list(covariate_variables.columns))
+        complete_dataset = pd.concat([dependent_variable, entity_treatment_dummy, should_be_treated_dummy, demeaned_selected_selection_variable, demeaned_selected_selection_interaction_variable, covariate_variables], axis = 1)
+    else:
+        regression_formula_1 = dependent_variable.name + " ~ " + should_be_treated_dummy.name + " + " + demeaned_selected_selection_variable.name + " + " + demeaned_selected_selection_interaction_variable.name
+        regression_formula_2 = entity_treatment_dummy.name + " ~ " + should_be_treated_dummy.name + " + " + demeaned_selected_selection_variable.name + " + " + demeaned_selected_selection_interaction_variable.name
+        complete_dataset = pd.concat([dependent_variable, entity_treatment_dummy, should_be_treated_dummy, demeaned_selected_selection_variable, demeaned_selected_selection_interaction_variable], axis = 1)
 
-# @register_tool(tags=["econometric algorithm"])
-# def Synthetic_Control_construction():
-#     pass  # TODO
+    # =========================================================================
 
-# @register_tool(tags=["econometric algorithm"])
-# def Synthetic_Control_Diff_in_Diff_regression():
-#     pass  # TODO
+    # Run the regressions
+    if type(cov_info) == str:
+        model_1 = smf.wls(regression_formula_1, complete_dataset, weights = weight).fit(cov_type = cov_info)
+        model_2 = smf.wls(regression_formula_2, complete_dataset, weights = weight).fit(cov_type = cov_info)
+    elif list(cov_info.keys())[0] == "HAC":
+        model_1 = smf.wls(regression_formula_1, complete_dataset, weights = weight).fit(cov_type = "HAC", cov_kwds = {"maxlags": cov_info["HAC"]})
+        model_2 = smf.wls(regression_formula_2, complete_dataset, weights = weight).fit(cov_type = "HAC", cov_kwds = {"maxlags": cov_info["HAC"]})
+    elif list(cov_info.keys())[0] == "cluster":
+        model_1 = smf.wls(regression_formula_1, complete_dataset, weights = weight).fit(cov_type = "cluster", cov_kwds = {"groups": cov_info["cluster"]})
+        model_2 = smf.wls(regression_formula_2, complete_dataset, weights = weight).fit(cov_type = "cluster", cov_kwds = {"groups": cov_info["cluster"]})
+    print("Fuzzy RD Estimator: ", model_1.params[should_be_treated_dummy.name] / model_2.params[should_be_treated_dummy.name])
+    
+    # Output the final result. ATE is the coefficient of the predicted treatment variable
+    if output_tables is True:
+        print(model_1.summary)
+        print(model_2.summary)
 
-# @register_tool(tags=["econometric algorithm"])
-# def Synthetic_Control_Event_Study_visualization():
-#     pass  # TODO
-
-# @register_tool(tags=["econometric algorithm"])
-# def Synthetic_Control_Regression_Discontinuity_Design_regression():
-#     pass  # TODO
-
-# @register_tool(tags=["econometric algorithm"])
-# def Synthetic_Control_Regression_Discontinuity_Design_visualization():
-#     pass  # TODO
-
-# #%%
-
-# @register_tool(tags=["econometric algorithm"])
-# def Propensity_Score_Matching_construction():
-#     pass  # TODO
-
-# @register_tool(tags=["econometric algorithm"])
-# def Propensity_Score_Matching_Diff_in_Diff_regression():
-#     pass  # TODO
-
-# @register_tool(tags=["econometric algorithm"])
-# def Propensity_Score_Matching_Regression_Discontinuity_Design_regression():
-#     pass  # TODO
+    # Return evaluation metric if needed
+    if target_type == "estimator":
+        return model_1.params[should_be_treated_dummy.name] / model_2.params[should_be_treated_dummy.name]
+    elif target_type == "final_models":
+        return [model_1, model_2]

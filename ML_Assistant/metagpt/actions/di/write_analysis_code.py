@@ -28,11 +28,16 @@ class WriteAnalysisCode(Action):
             context=context,
             previous_impl=working_memory,
         )
-
-        rsp = await self._aask(reflection_prompt, system_msgs=[REFLECTION_SYSTEM_MSG])
-        print("===========Reflection Response===========")
-        print(CodeParser.parse_code(block=None, text=rsp))
-        reflection = json.loads(CodeParser.parse_code(block=None, text=rsp))
+        for i in range(2):
+            try:
+                rsp = await self._aask(reflection_prompt, system_msgs=[REFLECTION_SYSTEM_MSG])
+                print("===========Reflection Response===========")
+                print(CodeParser.parse_code(block=None, text=rsp))
+                reflection = json.loads(CodeParser.parse_code(block=None, text=rsp))
+                break
+            except:
+                print("Reflection Collection Error. Will Try Again.")
+                continue
 
         try:
             await log_execution("### Code Failed Reason\n")
