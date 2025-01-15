@@ -7,11 +7,9 @@
 from metagpt.tools.libs import (
     data_preprocess,
     econometric_algorithm,
-    econometric_optimization, 
 )
 
 _ = (
     data_preprocess,
     econometric_algorithm,
-    econometric_optimization, 
 )  # Avoid pre-commit error

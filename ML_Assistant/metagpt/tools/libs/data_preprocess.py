@@ -41,3 +41,5 @@ def get_column_info(df: pd.DataFrame) -> dict:
     if len(json.dumps(column_info)) > 2000:
         column_info["Numeric"] = column_info["Numeric"][0:5] + ["Too many cols, omission here..."]
     return column_info
+    
+### Should we design a float-data-type guaranteed get_dummies() function?

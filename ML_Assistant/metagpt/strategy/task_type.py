@@ -5,7 +5,6 @@ from metagpt.prompts.task_type import (
     DATA_PREPROCESS_PROMPT,
     EDA_PROMPT,
     ECONOMETRIC_ALGORITHM_PROMPT,
-    ECONOMETRIC_OPTIMIZATION_PROMPT,
 )
 
 class TaskTypeDef(BaseModel):
@@ -31,11 +30,6 @@ class TaskType(Enum):
         name="econometric algorithm",
         desc="For matching and applying an econometric algorithm tool.",
         guidance=ECONOMETRIC_ALGORITHM_PROMPT,
-    )
-    ECONOMETRIC_OPTIMIZATION = TaskTypeDef(
-        name="econometric optimization",
-        desc="For grid-searching the best data pre-processing method and\or hyper-parameter to optimize the final econometric analysis result.",
-        guidance=ECONOMETRIC_OPTIMIZATION_PROMPT,
     )
 
     OTHER = TaskTypeDef(name="other", desc="Any tasks not in the defined categories")
