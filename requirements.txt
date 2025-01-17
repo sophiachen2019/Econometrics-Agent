@@ -12,13 +12,34 @@ openai~=1.13.3
 fastapi
 loguru
 uvicorn[standard]
-pydantic
+pydantic==2.8.2
 python-multipart
 sse-starlette
 
 flask
 flask_cors
 
+matplotlib
+nbformat
+statsmodels
+python-docx
+linearmodels
+google-generativeai
+aiofiles
+chardet
+zhipuai
+sparkai-ai-python
+qianfan
+dashscope
+anthropic
+boto3
+gitpython
+gitignore-parser
+semantic_kernel==0.4.3.dev0
+nbclient
+gymnasium
+rank-bm25
+ipython
 python-socketio
 python-jose
 passlib[bcrypt]
