@@ -60,11 +60,11 @@ def ordinary_least_square_regression(dependent_variable, treatment_variable, cov
             regression = sm.OLS(dependent_variable, sm.add_constant(X)).fit(cov_type = "cluster", cov_kwds = {"groups": cov_info["cluster"]})
     else:
         if type(cov_info) == str:
-            regression = sm.WLS(dependent_variable, sm.add_constant(X)).fit(cov_type = cov_info)
+            regression = sm.WLS(dependent_variable, sm.add_constant(X), weights = weights).fit(cov_type = cov_info)
         elif list(cov_info.keys())[0] == "HAC":
-            regression = sm.WLS(dependent_variable, sm.add_constant(X)).fit(cov_type = "HAC", cov_kwds = {"maxlags": cov_info["HAC"]})
+            regression = sm.WLS(dependent_variable, sm.add_constant(X), weights = weights).fit(cov_type = "HAC", cov_kwds = {"maxlags": cov_info["HAC"]})
         elif list(cov_info.keys())[0] == "cluster":
-            regression = sm.WLS(dependent_variable, sm.add_constant(X)).fit(cov_type = "cluster", cov_kwds = {"groups": cov_info["cluster"]})
+            regression = sm.WLS(dependent_variable, sm.add_constant(X), weights = weights).fit(cov_type = "cluster", cov_kwds = {"groups": cov_info["cluster"]})
 
     # Output the table if required
     print("Estimated ATE: ", regression.params[treatment_variable.name])
