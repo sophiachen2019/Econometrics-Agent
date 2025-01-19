@@ -28,7 +28,6 @@ google-generativeai
 aiofiles
 chardet
 zhipuai
-sparkai-ai-python
 qianfan
 dashscope
 anthropic
@@ -40,6 +39,8 @@ nbclient
 gymnasium
 rank-bm25
 ipython
+httpx==0.27.2
+ipykernel
 python-socketio
 python-jose
 passlib[bcrypt]
@@ -84,6 +85,10 @@ black
 text2vec
 
 # agentica
-agentica
-
+agentica==0.1.8
+llama_index
+torch
+playwright
+imap_tools
+spark-ai-python
 gunicorn
