@@ -31,17 +31,18 @@ from shared_queue import log_execution
 class ExecuteNbCode(Action):
     """execute notebook code block, return result to llm, and display it."""
 
-    nb: NotebookNode
-    nb_client: NotebookClient
-    console: Console
-    interaction: str
+    # 移除类级别的属性定义
     timeout: int = 600
 
     def __init__(
         self,
-        nb=nbformat.v4.new_notebook(),
+        nb=None,  # 修改默认参数
         timeout=600,
     ):
+        # 确保每个实例都有自己的 notebook
+        if nb is None:
+            nb = nbformat.v4.new_notebook()
+            
         super().__init__(
             nb=nb,
             nb_client=NotebookClient(nb, timeout=timeout),

@@ -89,22 +89,22 @@ class DataInterpreter(Role):
         code, _, _ = await self._write_and_exec_code()
         return Message(content=code, role="assistant", cause_by=WriteAnalysisCode)
 
-    async def _plan_and_act(self) -> Message:
+    async def _plan_and_act(self, user_id: str) -> Message:
         try:
-            rsp = await super()._plan_and_act()
+            rsp = await super()._plan_and_act(user_id=user_id)
             # await self.execute_code.terminate()
             return rsp
         except Exception as e:
             await self.execute_code.terminate()
             raise e
 
-    async def _act_on_task(self, current_task: Task) -> TaskResult:
+    async def _act_on_task(self, current_task: Task, user_id: str) -> TaskResult:
         """Useful in 'plan_and_act' mode. Wrap the output in a TaskResult for review and confirmation."""
-        code, result, is_success = await self._write_and_exec_code()
+        code, result, is_success = await self._write_and_exec_code(user_id=user_id)
         task_result = TaskResult(code=code, result=result, is_success=is_success)
         return task_result
 
-    async def _write_and_exec_code(self, max_retry: int = 3):
+    async def _write_and_exec_code(self, max_retry: int = 3, user_id: str = ""):
         counter = 0
         success = False
 
@@ -126,9 +126,9 @@ class DataInterpreter(Role):
 
         while not success and counter < max_retry:
             ### write code ###
-            code, cause_by = await self._write_code(counter, plan_status, tool_info)
-            await log_execution("### Code to be executed\n")
-            await log_execution("```python\n" + code + "\n```\n")
+            code, cause_by = await self._write_code(counter, plan_status, tool_info, user_id)
+            await log_execution("### Code to be executed\n", user_id)
+            await log_execution("```python\n" + code + "\n```\n", user_id)
 
             self.working_memory.add(Message(content=code, role="assistant", cause_by=cause_by))
 
@@ -136,12 +136,12 @@ class DataInterpreter(Role):
             result, success = await self.execute_code.run(code)
             print(result)
             if success:
-                await log_execution("### ✅Execution result\n")
-                await log_execution("```\n" + result + "\n```\n")
-                await self.extract_and_log_images(result)
+                await log_execution("### ✅Execution result\n", user_id)
+                await log_execution("```\n" + result + "\n```\n", user_id)
+                await self.extract_and_log_images(result, user_id)
             else:
-                await log_execution("### ❌Execution result\n")
-                await log_execution("```\n" + result + "\n```\n")
+                await log_execution("### ❌Execution result\n", user_id)
+                await log_execution("```\n" + result + "\n```\n", user_id)
 
 
             self.working_memory.add(Message(content=result, role="user", cause_by=ExecuteNbCode))
@@ -157,7 +157,7 @@ class DataInterpreter(Role):
 
         return code, result, success
 
-    async def extract_and_log_images(self, result):
+    async def extract_and_log_images(self, result, user_id):
         # 正则表达式模式，匹配 "Image saved to: " 后面的路径
         pattern = r"Image saved to: (.+\.png)"
 
@@ -170,22 +170,23 @@ class DataInterpreter(Role):
                 if image_path.exists():
                     with open(image_path, "rb") as image_file:
                         image_data = base64.b64encode(image_file.read()).decode('utf-8')
-                        await log_execution(f"<img src='data:image/png;base64,{image_data}'>\n")
+                        await log_execution(f"<img src='data:image/png;base64,{image_data}'>\n", user_id)
                         # await log_execution(f"![Image](data:image/png;base64,{image_data})\n")
                         # await log_execution(f"![image]({image_path})\n")
                         # await log_execution(f"Image saved to: {image_path}\n")
-                        await log_execution(f"\n")
-                        await log_execution(f"---\n")
+                        await log_execution(f"\n", user_id)
+                        await log_execution(f"---\n", user_id)
                 else:
-                    await log_execution(f"Image file not found: {image_path}")
+                    await log_execution(f"Image file not found: {image_path}", user_id)
             except Exception as e:
-                await log_execution(f"Error processing image {image_path}: {str(e)}")
+                await log_execution(f"Error processing image {image_path}: {str(e)}", user_id)
 
     async def _write_code(
         self,
         counter: int,
         plan_status: str = "",
         tool_info: str = "",
+        user_id: str = "",
     ):
         todo = self.rc.todo  # todo is WriteAnalysisCode
         logger.info(f"ready to {todo.name}")
@@ -199,6 +200,7 @@ class DataInterpreter(Role):
             tool_info=tool_info,
             working_memory=self.working_memory.get(),
             use_reflection=use_reflection,
+            user_id=user_id,
         )
 
         return code, todo

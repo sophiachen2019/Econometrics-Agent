@@ -80,7 +80,7 @@ class Planner(BaseModel):
     def current_task_id(self):
         return self.plan.current_task_id
 
-    async def update_plan(self, goal: str = "", max_tasks: int = 3, max_retries: int = 3):
+    async def update_plan(self, goal: str = "", max_tasks: int = 3, max_retries: int = 3, user_id: str = ""):
         if goal:
             self.plan = Plan(goal=goal)
 
@@ -102,13 +102,13 @@ class Planner(BaseModel):
             _, plan_confirmed = await self.ask_review(trigger=ReviewConst.TASK_REVIEW_TRIGGER)
 
         update_plan_from_rsp(rsp=rsp, current_plan=self.plan)
-        await log_execution("## Plan RoadMap\n")
-        await log_execution("---\n")
-        await log_execution("```json\n" + rsp + "\n```\n")
+        await log_execution("## Plan RoadMap\n", user_id)
+        await log_execution("---\n", user_id)
+        await log_execution("```json\n" + rsp + "\n```\n", user_id)
 
         self.working_memory.clear()
 
-    async def update_plan_as_multi_dialogue(self, goal: list[str] = [], max_tasks: int = 3, max_retries: int = 3):
+    async def update_plan_as_multi_dialogue(self, goal: list[str] = [], max_tasks: int = 3, max_retries: int = 3, user_id: str = ""):
         separator = "\u0001" # 选择非打印字符作为分隔符
         if goal:
             self.plan.goal += f"{separator}{goal[-1].content}"
@@ -131,9 +131,9 @@ class Planner(BaseModel):
             _, plan_confirmed = await self.ask_review(trigger=ReviewConst.TASK_REVIEW_TRIGGER)
 
         update_plan_from_rsp(rsp=rsp, current_plan=self.plan)
-        await log_execution("## New Plan RoadMap\n")
-        await log_execution("---\n")
-        await log_execution("```json\n" + rsp + "\n```\n")
+        await log_execution("## New Plan RoadMap\n", user_id)
+        await log_execution("---\n", user_id)
+        await log_execution("```json\n" + rsp + "\n```\n", user_id)
 
         self.working_memory.clear()
 

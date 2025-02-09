@@ -26,8 +26,8 @@ from chatpilot.apps.litellm_app import startup as litellm_app_startup
 from chatpilot.apps.ollama_app import app as ollama_app
 # from chatpilot.apps.dashscope_app import app as dashscope_app
 from chatpilot.apps.openai_app import app as openai_app
-# from chatpilot.apps.rag_app import app as rag_app
-# from chatpilot.apps.rag_utils import rag_messages
+from chatpilot.apps.rag_app import app as rag_app
+from chatpilot.apps.rag_utils import rag_messages
 from chatpilot.apps.web_app import app as webui_app
 from chatpilot.config import (
     WEBUI_NAME,
@@ -90,16 +90,16 @@ class RAGMiddleware(BaseHTTPMiddleware):
 
             # Example: Add a new key-value pair or modify existing ones
             # data["modified"] = True  # Example modification
-            if "docs" in data:
-                data = {**data}
-                data["messages"] = rag_messages(
-                    data["docs"],
-                    data["messages"],
-                    rag_app.state.RAG_TEMPLATE,
-                    rag_app.state.TOP_K,
-                    rag_app.state.sentence_transformer_ef,
-                )
-                del data["docs"]
+            # if "docs" in data:
+            #     data = {**data}
+            #     data["messages"] = rag_messages(
+            #         data["docs"],
+            #         data["messages"],
+            #         rag_app.state.RAG_TEMPLATE,
+            #         rag_app.state.TOP_K,
+            #         rag_app.state.sentence_transformer_ef,
+            #     )
+            #     del data["docs"]
             logger.debug(f"data: {data}")
 
             modified_body_bytes = json.dumps(data).encode("utf-8")
@@ -157,7 +157,7 @@ app.mount("/ollama", ollama_app)
 app.mount("/openai/api", openai_app)
 app.mount("/images/api/v1", images_app)
 app.mount("/audio/api/v1", audio_app)
-# app.mount("/rag/api/v1", rag_app)
+app.mount("/rag/api/v1", rag_app)
 
 
 @app.get("/api/config")
