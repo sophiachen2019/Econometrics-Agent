@@ -25,6 +25,7 @@ class User(pw.Model):
     profile_image_url = pw.CharField()
     timestamp = pw.DateField()
     uploaded_files = pw.TextField(default='[]')  # 存储为JSON字符串
+    quota = pw.IntegerField()
 
     class Meta:
         database = DB
@@ -38,6 +39,7 @@ class UserModel(BaseModel):
     profile_image_url: str = "/user.png"
     timestamp: int  # timestamp in epoch
     uploaded_files: List[str] = []  # 存储文件名列表
+    quota: int
 
 
 ####################
@@ -63,8 +65,9 @@ class UsersTable:
         self.db.create_tables([User])
 
     def insert_new_user(
-            self, id: str, name: str, email: str, role: str = "pending"
+            self, id: str, name: str, email: str, role: str = "pending", quota: int = 50
     ) -> Optional[UserModel]:
+        # default user quota 50
         user = UserModel(
             **{
                 "id": id,
@@ -74,6 +77,7 @@ class UsersTable:
                 "profile_image_url": "/user.png",
                 "timestamp": int(time.time()),
                 "uploaded_files": [],
+                "quota": quota,
             }
         )
         result = User.create(**user.dict())

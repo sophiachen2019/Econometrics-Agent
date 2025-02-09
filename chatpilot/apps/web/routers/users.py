@@ -4,10 +4,11 @@ from fastapi import APIRouter
 from fastapi import Depends, HTTPException, status
 from fastapi import Request
 
-from chatpilot.apps.auth_utils import get_password_hash, get_admin_user
+from chatpilot.apps.auth_utils import get_password_hash, get_admin_user, get_verified_user
 from chatpilot.apps.web.models.auths import Auths
 from chatpilot.apps.web.models.users import UserModel, UserUpdateForm, UserRoleUpdateForm, Users
 from chatpilot.constants import ERROR_MESSAGES
+import json
 
 router = APIRouter()
 
@@ -127,3 +128,18 @@ async def delete_user_by_id(user_id: str, user=Depends(get_admin_user)):
         status_code=status.HTTP_403_FORBIDDEN,
         detail=ERROR_MESSAGES.ACTION_PROHIBITED,
     )
+
+############################
+# GetUserQuotaById
+############################
+
+@router.get("/{user_id}/quota", response_model=Optional[UserModel])
+async def get_user_quota_by_id(user_id: str, user=Depends(get_verified_user)):
+    user = Users.get_user_by_id(user_id)
+
+    if user:
+        return UserModel(**{**user.model_dump(), "quota": json.loads(str(user.quota))})
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=ERROR_MESSAGES.NOT_FOUND
+        )
