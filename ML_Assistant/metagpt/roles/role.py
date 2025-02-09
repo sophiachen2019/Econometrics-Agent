@@ -488,28 +488,28 @@ class Role(SerializationMixin, ContextMixin, BaseModel):
             actions_taken += 1
         return rsp  # return output from the last action
 
-    async def _plan_and_act(self) -> Message:
+    async def _plan_and_act(self, user_id) -> Message:
         """first plan, then execute an action sequence, i.e. _think (of a plan) -> _act -> _act -> ... Use llm to come up with the plan dynamically."""
 
         # create initial plan and update it until confirmation
         goal = self.rc.memory.get()  # retreive latest user requirement
         if len(goal) == 1:
-            await self.planner.update_plan(goal=goal[-1].content)
+            await self.planner.update_plan(goal=goal[-1].content, user_id=user_id)
         elif len(goal) > 1:
-            await self.planner.update_plan_as_multi_dialogue(goal=goal[::2]) # only use the user requirements
+            await self.planner.update_plan_as_multi_dialogue(goal=goal[::2], user_id=user_id) # only use the user requirements
 
-        await log_execution("## Task Processing\n")
+        await log_execution("## Task Processing\n", user_id)
         # take on tasks until all finished
         while self.planner.current_task:
             task = self.planner.current_task
             logger.info(f"ready to take on task {task}")
             # await log_execution("---\n")
             # await log_execution(f"### 🚀Ready to take on task *{task.instruction}*\n")
-            await log_execution(f"### 🚀Ready to take on task {number_emojis.get(task.task_id, '❓')} *{task.instruction}*\n")
-            await log_execution("---\n")
+            await log_execution(f"### 🚀Ready to take on task {number_emojis.get(task.task_id, '❓')} *{task.instruction}*\n", user_id)
+            await log_execution("---\n", user_id)
 
             # take on current task
-            task_result = await self._act_on_task(task)
+            task_result = await self._act_on_task(task, user_id=user_id)
 
             # process the result, such as reviewing, confirming, plan updating
             await self.planner.process_task_result(task_result)
@@ -520,7 +520,7 @@ class Role(SerializationMixin, ContextMixin, BaseModel):
 
         return rsp
 
-    async def _act_on_task(self, current_task: Task) -> TaskResult:
+    async def _act_on_task(self, current_task: Task, user_id: str) -> TaskResult:
         """Taking specific action to handle one task in plan
 
         Args:
@@ -534,12 +534,12 @@ class Role(SerializationMixin, ContextMixin, BaseModel):
         """
         raise NotImplementedError
 
-    async def react(self) -> Message:
+    async def react(self, user_id) -> Message:
         """Entry to one of three strategies by which Role reacts to the observed Message"""
         if self.rc.react_mode == RoleReactMode.REACT or self.rc.react_mode == RoleReactMode.BY_ORDER:
             rsp = await self._react()
         elif self.rc.react_mode == RoleReactMode.PLAN_AND_ACT:
-            rsp = await self._plan_and_act()
+            rsp = await self._plan_and_act(user_id=user_id)
         else:
             raise ValueError(f"Unsupported react mode: {self.rc.react_mode}")
         self._set_state(state=-1)  # current reaction is complete, reset state to -1 and todo back to None
@@ -550,7 +550,7 @@ class Role(SerializationMixin, ContextMixin, BaseModel):
         return self.rc.memory.get(k=k)
 
     @role_raise_decorator
-    async def run(self, with_message=None) -> Message | None:
+    async def run(self, with_message=None, user_id="") -> Message | None:
         """Observe, and think and act based on the results of the observation"""
         if with_message:
             msg = None
@@ -568,7 +568,7 @@ class Role(SerializationMixin, ContextMixin, BaseModel):
             logger.debug(f"{self._setting}: no news. waiting.")
             return
 
-        rsp = await self.react()
+        rsp = await self.react(user_id)
 
         # Reset the next action to be taken.
         self.set_todo(None)
