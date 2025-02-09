@@ -84,6 +84,7 @@
 
 	onMount(async () => {
 		if ($user === undefined) {
+			// login page
 			await goto('/auth');
 		} else if (['user', 'admin'].includes($user.role)) {
 			try {
@@ -229,7 +230,7 @@
 
 							<div class=" mt-4 text-center text-sm dark:text-gray-200 w-full">
 								Your account status is currently pending activation. To access the WebUI, please
-								reach out to the administrator(wechat: xuming624).
+								reach out to TA.
 							</div>
 
 							<div class=" mt-6 mx-auto relative group w-fit">

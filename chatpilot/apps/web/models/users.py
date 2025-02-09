@@ -21,6 +21,7 @@ class User(pw.Model):
     role = pw.CharField()
     profile_image_url = pw.CharField()
     timestamp = pw.DateField()
+    quota = pw.IntegerField()
 
     class Meta:
         database = DB
@@ -33,6 +34,7 @@ class UserModel(BaseModel):
     role: str = "pending"
     profile_image_url: str = "/user.png"
     timestamp: int  # timestamp in epoch
+    quota: int
 
 
 ####################
@@ -58,8 +60,9 @@ class UsersTable:
         self.db.create_tables([User])
 
     def insert_new_user(
-            self, id: str, name: str, email: str, role: str = "pending"
+            self, id: str, name: str, email: str, role: str = "pending", quota: int = 50
     ) -> Optional[UserModel]:
+        # default user quota 50
         user = UserModel(
             **{
                 "id": id,
@@ -68,6 +71,7 @@ class UsersTable:
                 "role": role,
                 "profile_image_url": "/user.png",
                 "timestamp": int(time.time()),
+                "quota": quota,
             }
         )
         result = User.create(**user.dict())

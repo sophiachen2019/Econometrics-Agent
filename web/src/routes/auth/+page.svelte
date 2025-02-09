@@ -143,7 +143,7 @@
 						</button>
 
 						<div class=" mt-4 text-sm text-center">
-							{mode === 'signin' ? `Don't have an account?` : `Already have an account?`}
+							<!-- {mode === 'signin' ? `Don't have an account?` : `Already have an account?`} -->
 
 							<button
 								class=" font-medium underline"
