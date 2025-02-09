@@ -7,7 +7,7 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { user, chats, settings, showSettings, chatId, tags } from '$lib/stores';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import {
 		deleteChatById,
 		getChatList,
@@ -20,6 +20,7 @@
 	import { slide } from 'svelte/transition';
 	import { WEBUI_BASE_URL } from '$lib/constants';
 	import Tooltip from '../common/Tooltip.svelte';
+	import { getQuotaById } from '$lib/apis/users';
 
 	let show = false;
 	let navElement;
@@ -34,12 +35,33 @@
 	let showDropdown = false;
 	let isEditing = false;
 
+	let quota = null;
+	let quotaUpdateInterval;
+	$: if ($user !== undefined) {
+		updateQuota();
+	}
+
 	onMount(async () => {
+        updateQuota();
+        quotaUpdateInterval = setInterval(updateQuota, 30000);
 		if (window.innerWidth > 1024) {
 			show = true;
 		}
 		await chats.set(await getChatList(localStorage.token));
 	});
+
+	onDestroy(() => {
+        // 清理定时器
+        if (quotaUpdateInterval) {
+            clearInterval(quotaUpdateInterval);
+        }
+    });
+
+	const updateQuota = async () => {
+		getQuotaById(localStorage.token, $user.id).then((res) => {
+			quota = res.quota;
+		});
+	};
 
 	// Helper function to fetch and add chat content to each chat
 	const enrichChatsWithContent = async (chatList) => {
@@ -566,6 +588,8 @@
 							/>
 						</div>
 						<div class=" self-center font-semibold">{$user.name}</div>
+						<div class=" self-center ml-auto">Quota: {quota}</div> 
+						<!-- ${quota} -->
 					</button>
 
 					{#if showDropdown}

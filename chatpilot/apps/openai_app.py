@@ -19,7 +19,7 @@ import aiohttp
 import requests
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse, PlainTextResponse
 from langchain_core.messages import AIMessage, HumanMessage
 from loguru import logger
 from pydantic import BaseModel
@@ -482,6 +482,19 @@ async def proxy(
         f"model_name: {model_name}, max_tokens: {max_tokens}, "
         f"num_ctx: {num_ctx}, messages size: {len(messages)}"
     )
+
+    # 扣除&更新用户quota
+    if user.quota <= 0:
+        raise HTTPException(status_code=400, detail="QUOTA_EXCEEDED")
+
+    from chatpilot.apps.web.models.users import Users
+    Users.update_user_by_id(
+        user.id,
+        {"quota": user.quota - 1})
+    # if user:
+    #     pass
+    # else:
+    #     raise HTTPException(400, detail=ERROR_MESSAGES.DEFAULT())
 
     # 获取最新的用户输入
     if messages:
