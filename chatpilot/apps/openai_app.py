@@ -488,13 +488,13 @@ async def proxy(
         raise HTTPException(status_code=400, detail="QUOTA_EXCEEDED")
 
     from chatpilot.apps.web.models.users import Users
-    user = Users.update_user_by_id(
+    Users.update_user_by_id(
         user.id,
         {"quota": user.quota - 1})
-    if user:
-        pass
-    else:
-        raise HTTPException(400, detail=ERROR_MESSAGES.DEFAULT())
+    # if user:
+    #     pass
+    # else:
+    #     raise HTTPException(400, detail=ERROR_MESSAGES.DEFAULT())
 
     # 获取最新的用户输入
     if messages:
