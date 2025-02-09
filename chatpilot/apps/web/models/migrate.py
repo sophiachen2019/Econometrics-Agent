@@ -8,5 +8,7 @@ migrator = SqliteMigrator(DB)
 # 执行迁移
 with DB.atomic():
     migrate(
-        migrator.add_column('user', 'quota', TextField(default=50))
+
+        migrator.add_column('user', 'uploaded_files', TextField(default='[]'))
+
     )
