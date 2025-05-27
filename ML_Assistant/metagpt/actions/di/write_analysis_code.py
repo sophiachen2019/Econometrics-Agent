@@ -18,11 +18,11 @@ from metagpt.prompts.di.write_analysis_code import (
     STRUCTUAL_PROMPT,
 )
 from metagpt.schema import Message, Plan
-from metagpt.utils.common import CodeParser, remove_comments
+from metagpt.utils.common import CodeParser, NoMoneyException, remove_comments
 from shared_queue import log_execution
 
 class WriteAnalysisCode(Action):
-    async def _debug_with_reflection(self, context: list[Message], working_memory: list[Message]):
+    async def _debug_with_reflection(self, context: list[Message], working_memory: list[Message], user_id: str):
         reflection_prompt = REFLECTION_PROMPT.format(
             debug_example=DEBUG_REFLECTION_EXAMPLE,
             context=context,
@@ -40,10 +40,10 @@ class WriteAnalysisCode(Action):
                 continue
 
         try:
-            await log_execution("### Code Failed Reason\n")
-            await log_execution("🤔" + reflection["reflection"] + "\n")
-            await log_execution("\n")
-            await log_execution("---\n")
+            await log_execution("### Code Failed Reason\n", user_id)
+            await log_execution("🤔" + reflection["reflection"] + "\n", user_id)
+            await log_execution("\n", user_id)
+            await log_execution("---\n", user_id)
         except:
             pass
 
@@ -56,8 +56,15 @@ class WriteAnalysisCode(Action):
         tool_info: str = "",
         working_memory: list[Message] = None,
         use_reflection: bool = False,
+        user_id: str = "",
         **kwargs,
     ) -> str:
+
+        if self.llm.cost_manager.total_cost >= self.llm.cost_manager.max_budget:
+            await log_execution("### ❗ ❗ ❗ You have exceeded the single task token budget, please restart a conversation session\n", user_id)
+            raise NoMoneyException(self.llm.cost_manager.total_cost, f"Insufficient funds: {self.llm.cost_manager.max_budget}")
+            
+        
         structual_prompt = STRUCTUAL_PROMPT.format(
             user_requirement=user_requirement,
             plan_status=plan_status,
@@ -69,7 +76,7 @@ class WriteAnalysisCode(Action):
 
         # LLM call
         if use_reflection:
-            code = await self._debug_with_reflection(context=context, working_memory=working_memory)
+            code = await self._debug_with_reflection(context=context, working_memory=working_memory, user_id=user_id)
         else:
             rsp = await self.llm.aask(context, system_msgs=[INTERPRETER_SYSTEM_MSG], **kwargs)
             code = CodeParser.parse_code(block=None, text=rsp)

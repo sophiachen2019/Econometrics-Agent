@@ -1,12 +1,15 @@
 import time
 from typing import List, Optional
 
+from loguru import logger
 import peewee as pw
 from playhouse.shortcuts import model_to_dict
 from pydantic import BaseModel
 
 from chatpilot.apps.db import DB
 from chatpilot.apps.web.models.chats import Chats
+
+import json
 
 
 ####################
@@ -21,6 +24,8 @@ class User(pw.Model):
     role = pw.CharField()
     profile_image_url = pw.CharField()
     timestamp = pw.DateField()
+    uploaded_files = pw.TextField(default='[]')  # 存储为JSON字符串
+    quota = pw.IntegerField()
 
     class Meta:
         database = DB
@@ -33,6 +38,8 @@ class UserModel(BaseModel):
     role: str = "pending"
     profile_image_url: str = "/user.png"
     timestamp: int  # timestamp in epoch
+    uploaded_files: List[str] = []  # 存储文件名列表
+    quota: int
 
 
 ####################
@@ -58,8 +65,9 @@ class UsersTable:
         self.db.create_tables([User])
 
     def insert_new_user(
-            self, id: str, name: str, email: str, role: str = "pending"
+            self, id: str, name: str, email: str, role: str = "pending", quota: int = 50
     ) -> Optional[UserModel]:
+        # default user quota 50
         user = UserModel(
             **{
                 "id": id,
@@ -68,6 +76,8 @@ class UsersTable:
                 "role": role,
                 "profile_image_url": "/user.png",
                 "timestamp": int(time.time()),
+                "uploaded_files": [],
+                "quota": quota,
             }
         )
         result = User.create(**user.dict())
@@ -77,25 +87,39 @@ class UsersTable:
             return None
 
     def get_user_by_id(self, id: str) -> Optional[UserModel]:
-        try:
+        # try:
             user = User.get(User.id == id)
-            return UserModel(**model_to_dict(user))
-        except:
-            return None
+            user_dict = model_to_dict(user)
+            # 将 JSON 字符串转换为 Python 列表
+            user_dict['uploaded_files'] = json.loads(user_dict.get('uploaded_files', '[]'))
+            return UserModel(**user_dict)
+        # except Exception as e:
+        #     logger.error(f"Error getting user by id: {e}")
+        #     return None
 
     def get_user_by_email(self, email: str) -> Optional[UserModel]:
         try:
             user = User.get(User.email == email)
-            return UserModel(**model_to_dict(user))
-        except:
+            user_dict = model_to_dict(user)
+            # 将 JSON 字符串转换为 Python 列表
+            user_dict['uploaded_files'] = json.loads(user_dict.get('uploaded_files', '[]'))
+            return UserModel(**user_dict)
+        except Exception as e:
+            logger.error(f"Error getting user by email: {e}")
             return None
 
     def get_users(self, skip: int = 0, limit: int = 50) -> List[UserModel]:
-        return [
-            UserModel(**model_to_dict(user))
-            for user in User.select()
-            # .limit(limit).offset(skip)
-        ]
+        try:
+            return [
+                UserModel(**{
+                    **model_to_dict(user),
+                    'uploaded_files': json.loads(model_to_dict(user).get('uploaded_files', '[]'))
+                })
+                for user in User.select()
+            ]
+        except Exception as e:
+            logger.error(f"Error getting users: {e}")
+            return []
 
     def get_num_users(self) -> Optional[int]:
         return User.select().count()

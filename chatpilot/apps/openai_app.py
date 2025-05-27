@@ -19,7 +19,7 @@ import aiohttp
 import requests
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse, PlainTextResponse
 from langchain_core.messages import AIMessage, HumanMessage
 from loguru import logger
 from pydantic import BaseModel
@@ -30,6 +30,7 @@ from chatpilot.apps.auth_utils import (
     get_current_user,
     get_admin_user,
 )
+from chatpilot.apps.web.models.users import Users
 from chatpilot.config import (
     OPENAI_API_BASE_URLS,
     OPENAI_API_KEYS,
@@ -38,6 +39,7 @@ from chatpilot.config import (
     MODEL_FILTER_ENABLED,
     MODEL_FILTER_LIST,
     SERPER_API_KEY,
+    UPLOAD_DIR,
     OpenAIClientWrapper,
     RPD,
     RPM,
@@ -49,7 +51,7 @@ from chatpilot.constants import ERROR_MESSAGES
 from chatpilot.langchain_assistant import LangchainAssistant
 from metagpt.roles.di.data_interpreter import DataInterpreter
 # from examples.di.machine_learning_with_tools import main_generator
-from shared_queue import queue_empty, get_message
+from shared_queue import cleanup_queue, queue_empty, get_message
 
 app = FastAPI()
 app.add_middleware(
@@ -59,6 +61,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 初始化 user_files
+app.state.user_files = {}
 
 app.state.MODEL_FILTER_ENABLED = MODEL_FILTER_ENABLED
 app.state.MODEL_FILTER_LIST = MODEL_FILTER_LIST
@@ -482,11 +487,33 @@ async def proxy(
         f"num_ctx: {num_ctx}, messages size: {len(messages)}"
     )
 
+    # 扣除&更新用户quota
+    if user.quota <= 0:
+        raise HTTPException(status_code=400, detail="QUOTA_EXCEEDED")
+
+    from chatpilot.apps.web.models.users import Users
+    Users.update_user_by_id(
+        user.id,
+        {"quota": user.quota - 1})
+    # if user:
+    #     pass
+    # else:
+    #     raise HTTPException(400, detail=ERROR_MESSAGES.DEFAULT())
+
     # 获取最新的用户输入
     if messages:
         new_message = messages[-1].get('content', '')
     else:
         new_message = ""
+
+    print(app.state.user_files)
+    # 从数据库获取用户信息
+    db_user = Users.get_user_by_id(user.id)
+    if db_user and db_user.uploaded_files:  # 检查用户是否存在且有上传文件
+        filename = db_user.uploaded_files[0]  # 获取最新上传的文件名
+        file_path = f"{UPLOAD_DIR}/{user.id}/{filename}"  # 构建完整的文件路径
+        suffix_prompt = f"\nIf the user's requirements involve or mention that it contains a dataset or file, this is the path address: {file_path}."
+        new_message = f"{new_message} {suffix_prompt}"
 
     # 将最新用户之前的用户信息综合起来形成新的列表
     if len(messages) > 2:
@@ -500,6 +527,8 @@ async def proxy(
     if not new_message:
         raise HTTPException(status_code=400, detail="No message content provided.")
 
+    logger.warning(f"new_message: {new_message}")
+
     async with app.state.conversation_lock:
         # 使用 LLM 判断是否相关
         related = await is_related_conversation(previous_messages, new_message)
@@ -508,6 +537,7 @@ async def proxy(
         if related:
             # 使用现有会话
             conversation = app.state.USER_CONVERSATIONS.get(user.id)
+            print(f"原有conversation: {conversation}")
             if conversation:
                 interpreter: DataInterpreter = conversation["interpreter"]
                 logger.warning(f"继续使用现有会话, user_id: {user.id}")
@@ -536,41 +566,41 @@ async def proxy(
     # 处理会话逻辑
     async def process_interpreter():
         # 假设您需要将新消息传递给 DataInterpreter 的 run 方法
-        return await main_generator_with_interpreter(interpreter, new_message)
-
+        return await main_generator_with_interpreter(interpreter, new_message, user.id)
     async def event_generator():
+        try:
+            main_task = asyncio.create_task(process_interpreter())
 
-        main_task = asyncio.create_task(process_interpreter())
+            while True:
+                if not queue_empty(user.id):
+                    message = await get_message(user.id)
+                    data_structure = {
+                        "id": str(uuid.uuid4()),
+                        "object": "chat.completion.chunk",
+                        "created": int(time.time()),
+                        "model": model_name,
+                        "choices": [
+                            {
+                                "index": 0,
+                                "delta": {"content": message},
+                                "finish_reason": None
+                            }
+                        ]
+                    }
+                    formatted_data = f"data: {json.dumps(data_structure)}\n\n"
+                    yield formatted_data.encode()
+                elif main_task.done():
+                    break
+                else:
+                    await asyncio.sleep(0.1)
 
-        while True:
-            if not queue_empty():
-                message = await get_message()
-                data_structure = {
-                    "id": str(uuid.uuid4()),
-                    "object": "chat.completion.chunk",
-                    "created": int(time.time()),
-                    "model": model_name,
-                    "choices": [
-                        {
-                            "index": 0,
-                            "delta": {"content": message},
-                            "finish_reason": None
-                        }
-                    ]
-                }
-                formatted_data = f"data: {json.dumps(data_structure)}\n\n"
-                yield formatted_data.encode()
-            elif main_task.done():
-                break
-            else:
-                await asyncio.sleep(0.1)
+            if main_task.exception():
+                raise main_task.exception()
 
-        if main_task.exception():
-            raise main_task.exception()
-
-        app.state.USER_CONVERSATIONS[user.id]["interpreter"] = interpreter
-        # logger.warning(interpreter.planner.get_useful_memories())
-
+            app.state.USER_CONVERSATIONS[user.id]["interpreter"] = interpreter
+        finally:
+            # 清理用户的消息队列
+            cleanup_queue(user.id)
     return StreamingResponse(event_generator(), media_type='text/event-stream')
 
     # except Exception as e:
