@@ -211,9 +211,7 @@ class DataInterpreter(Role):
             or not self.planner.plan.get_finished_tasks()
             or self.planner.plan.current_task.task_type
             not in [
-                TaskType.DATA_PREPROCESS.type_name,
-                TaskType.FEATURE_ENGINEERING.type_name,
-                TaskType.MODEL_TRAIN.type_name,
+                TaskType.DATA_PREPROCESS.type_name
             ]
         ):
             return

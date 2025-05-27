@@ -21,7 +21,6 @@ from metagpt.schema import Message, Plan
 from metagpt.utils.common import CodeParser, NoMoneyException, remove_comments
 from shared_queue import log_execution
 
-
 class WriteAnalysisCode(Action):
     async def _debug_with_reflection(self, context: list[Message], working_memory: list[Message], user_id: str):
         reflection_prompt = REFLECTION_PROMPT.format(
@@ -29,11 +28,16 @@ class WriteAnalysisCode(Action):
             context=context,
             previous_impl=working_memory,
         )
-
-        rsp = await self._aask(reflection_prompt, system_msgs=[REFLECTION_SYSTEM_MSG])
-        print("===========Reflection Response===========")
-        print(CodeParser.parse_code(block=None, text=rsp))
-        reflection = json.loads(CodeParser.parse_code(block=None, text=rsp))
+        for i in range(2):
+            try:
+                rsp = await self._aask(reflection_prompt, system_msgs=[REFLECTION_SYSTEM_MSG])
+                print("===========Reflection Response===========")
+                print(CodeParser.parse_code(block=None, text=rsp))
+                reflection = json.loads(CodeParser.parse_code(block=None, text=rsp))
+                break
+            except:
+                print("Reflection Collection Error. Will Try Again.")
+                continue
 
         try:
             await log_execution("### Code Failed Reason\n", user_id)
@@ -78,7 +82,6 @@ class WriteAnalysisCode(Action):
             code = CodeParser.parse_code(block=None, text=rsp)
 
         return code
-
 
 class CheckData(Action):
     async def run(self, plan: Plan) -> dict:

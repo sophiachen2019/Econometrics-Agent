@@ -158,14 +158,18 @@ async def is_related_conversation(previous_messages: List, new_message: str) -> 
     You can refer to the following examples:
     
     ## Previous input:
-    Please help me conduct a linear regression prediction for the Boston house price dataset.
+    i will give you my outlook email account and password, please help me login in and respond to an email to Lily Wang, the content is about thanks and I have sent an email to MEcon Office, I will wait for their response email.
+    my email account: zhoutuo@connect.hku.hk
+    password: ZT13637378245zt
     ## Latest input:
-    Continue to print out the regression summary statistics table for the estimated coefficients. Discuss the economic results based on regression tables.
+    my email account is zhoutuo@connect.hku
     ## Your output:
     {{"is_related": true}}
     
     ## Previous input:
-    Please tell me the difference between NVIDIA A100 and NVIDIA V100.
+    i will give you my outlook email account and password, please help me login in and respond to an email to Lily Wang, the content is about thanks and I have sent an email to MEcon Office, I will wait for their response email.
+    my email account: zhoutuo@connect.hku.hk
+    password: ZT13637378245zt
     ## Latest input:
     Please help me conduct a linear regression prediction for the Boston house price dataset, and print out the regression summary statistics table for the estimated coefficients. Discuss the economic results based on regression tables.
     ## Your output:
@@ -517,8 +521,8 @@ async def proxy(
     else:
         previous_messages = []
 
-    # print(f"previous_messages: {previous_messages}")
-    # print(f"new_message: {new_message}")
+    print(f"previous_messages: {previous_messages}")
+    print(f"new_message: {new_message}")
 
     if not new_message:
         raise HTTPException(status_code=400, detail="No message content provided.")

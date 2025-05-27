@@ -8,48 +8,25 @@ The current task is about exploratory data analysis, please note the following:
 # Prompt for taking on "data_preprocess" tasks
 DATA_PREPROCESS_PROMPT = """
 The current task is about data preprocessing, please note the following:
-- Monitor data types per column, applying appropriate methods.
+- Monitor data types per column, applying appropriate methods ONLY WHEN NECESSARY OR REQUIRED.
+- For all selected columns that are of string types, MAKE SURE to transform them into dummy or categorical variables. BE SURE the new columns should have the same names as their previous names. 
+- For all selected columns that are of numerical types (not categorical types), such as int8 or float8, transform them into float64. Some numerical types may ve very dangerous, for example, taking squared value of int8 type number might easily make the result exceed the allowed numerical value range.
 - Ensure operations are on existing dataset columns.
+- MAKE SURE to figure out whether any column(s) in the dataset is the index (or double index for panel data analysis) of the dataset, and properly set the index accordingly. DO NOT INCORRECTLY TREAT INDEX COLUMNS AS DATA COLUMNS!!! If there is such index column(s), properly set the index into the pd.Series or pd.DataFrame dataset, and then DROP THE ORIGINAL INDEX COLUMN!
 - Avoid writing processed data to files.
 - Avoid any change to label column, such as standardization, etc.
-- Prefer alternatives to one-hot encoding for categorical data.
-- Only encode or scale necessary columns to allow for potential feature-specific engineering tasks (like time_extract, binning, extraction, etc.) later.
-- Each step do data preprocessing to train, must do same for test separately at the same time.
+- Prefer one-hot encoding for categorical data, but DO MAKE SURE the one-hot encoding generated columns are dummy variables of type int32. KEEP IN MIND ALL FINAL DATASETS SHOULD BE NUMERICAL VALUES, and STRING & BOOL CANNOT BE ACCEPTED.
 - Always copy the DataFrame before processing it and use the copy to process.
 """
 
-# Prompt for taking on "feature_engineering" tasks
-FEATURE_ENGINEERING_PROMPT = """
-The current task is about feature engineering. when performing it, please adhere to the following principles:
-- Generate as diverse features as possible to improve the model's performance step-by-step. 
-- Use available feature engineering tools if they are potential impactful.
-- Avoid creating redundant or excessively numerous features in one step.
-- Exclude ID columns from feature generation and remove them.
-- Each feature engineering operation performed on the train set must also applies to the test separately at the same time.
-- Avoid using the label column to create features, except for cat encoding.
-- Use the data from previous task result if exist, do not mock or reload data yourself.
-- Always copy the DataFrame before processing it and use the copy to process.
-"""
-
-# Prompt for taking on "model_train" tasks
-MODEL_TRAIN_PROMPT = """
-The current task is about training a model, please ensure high performance:
-- Keep in mind that your user prioritizes results and is highly focused on model performance. So, when needed, feel free to use models of any complexity to improve effectiveness, such as XGBoost, CatBoost, etc.
-- If non-numeric columns exist, perform label encode together with all steps.
+# Prompt for taking on "econometric_algorithm" tasks
+ECONOMETRIC_ALGORITHM_PROMPT = """
+The current task is about matching and applying an econometric algorithm tool. please note the following:
+- ALWAYS APPLY AVAILABLE TOOLS FIRST. Find the tool that most satisfy the target.
+- PAY VERY MUCH ATTENTION TO USER TASK REQUIREMENTS! MAKE CLEAR AND MATCH VERY ACCURATELY what the dependent variable, treatment variable, control variables (if any), the instructed econometric algorithm and other requirements are. Strict follow the real instructions and do not "ASSUME" any setting about data or methodology in the task!
+- Many tools have the input "target_type" that allows users to denote what the tool functions should output. PAY ATTENTION TO THIS INPUT PARAMETER! When you want to observe the detailed result from the econometric algorithm model, BE SURE TO INPUT "final_model" or "final_models" IN THIS PARAMETER!
+- Only when no tools are proper for the target should you initiate to find a model. 
 - Use the data from previous task result directly, do not mock or reload data yourself.
-- Set suitable hyperparameters for the model, make metrics as high as possible.
-"""
-
-# Prompt for taking on "model_evaluate" tasks
-MODEL_EVALUATE_PROMPT = """
-The current task is about evaluating a model, please note the following:
-- Ensure that the evaluated data is same processed as the training data. If not, remember use object in 'Done Tasks' to transform the data.
-- Use trained model from previous task result directly, do not mock or reload model yourself.
-"""
-
-# Prompt for taking on "image2webpage" tasks
-IMAGE2WEBPAGE_PROMPT = """
-The current task is about converting image into webpage code. please note the following:
-- Single-Step Code Generation: Execute the entire code generation process in a single step, encompassing HTML, CSS, and JavaScript. Avoid fragmenting the code generation into multiple separate steps to maintain consistency and simplify the development workflow.
-- Save webpages: Be sure to use the save method provided.
+- Some results are not quantities and may contain graphs and/or tables. STRICTLY follow the user's instruction and provide possible qualitative conclusions and/or suggestions.
+- The final result for each task should NEVER be None or np.nan! If such result appears, GO BACK TO CHECK THE INPUTS AND OUTPUTS OF THE TOOL SELECTED!
 """
