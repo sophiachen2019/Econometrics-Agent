@@ -1,0 +1,9 @@
+type: function
+description: 'Construct propensity score for each sample to receive binary treatment
+  based on covariate variables, using binary Logistic regression. '
+signature: (treatment_variable, covariate_variables)
+parameters: 'Args: treatment_variable (pd.Series): Target treatment variable, which
+  should be a binary variable (1 for treatment, 0 for control). covariate_variables
+  (pd.DataFrame): A dataframe of covariate variables, which should not contain nan
+  value or intercept. Returns: pd.Series: The estimated propensity score for each
+  sample, which will be named "propensity_score".'

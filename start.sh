@@ -3,6 +3,12 @@
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 cd "$SCRIPT_DIR" || exit
 
+# Add agent to PYTHONPATH so metagpt module can be found
+export PYTHONPATH="$SCRIPT_DIR/agent:$PYTHONPATH"
+
+# Add chatpilot to PYTHONPATH so chatpilot module can be found
+export PYTHONPATH="$SCRIPT_DIR/chatpilot:$PYTHONPATH"
+
 KEY_FILE=.webui_secret_key
 
 PORT="${PORT:-1280}"

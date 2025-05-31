@@ -24,8 +24,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from loguru import logger
 from pydantic import BaseModel
 
-from ML_Assistant.examples.di.machine_learning_with_tools import main_generator_with_interpreter
-from chatpilot.agentica_assistant import AgenticaAssistant
+from agent.examples.di.machine_learning_with_tools import main_generator_with_interpreter
 from chatpilot.apps.auth_utils import (
     get_current_user,
     get_admin_user,

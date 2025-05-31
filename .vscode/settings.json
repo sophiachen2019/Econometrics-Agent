@@ -1,0 +1,17 @@
+{
+    "sqltools.useNodeRuntime": true,
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "econ-agent",
+            "database": "$HOME/.cache/chatpilot/data/web.db"
+        },
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "econ-agent",
+            "database": "~/.cache/chatpilot/data/web.db"
+        }
+    ]
+}

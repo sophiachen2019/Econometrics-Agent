@@ -1,0 +1,19 @@
+type: function
+description: 'Use propensity score double robust augmented IPW method to estimate
+  Average Treatment Effect (ATE) of the treatment variable towards the dependent variable.
+  This method is formally called Propensity Double Robust Estimator (Augmented IPW)
+  approach. NOTE THAT this function is the DOUBLE ROBUST version! NOTE THAT THIS FUNCTION
+  DOES NOT RETURN THE FINAL REGRESSION TABLE! All tables can (and only can) be printed
+  out during the function. The final return is the final estimated ATE. Can refer
+  to: https://www.stata.com/manuals/teteffectsaipw.pdf '
+signature: (dependent_variable, treatment_variable, propensity_score, covariate_variables,
+  cov_type=None)
+parameters: 'Args: dependent_variable (pd.Series): Target dependent variable, which
+  should not contain nan value. treatment_variable (pd.Series): Target treatment variable,
+  which should be a binary variable with no nan value (1 for treatment, 0 for control).
+  covariate_variables (pd.DataFrame): A dataframe of covariate variables, which should
+  not contain nan value or intercept. propensity_score (pd.Series): Propensity score
+  for each sample to receive treatment, which should not contain nan value. cov_type
+  (str or None): The covariance estimator used in the results. If not specified by
+  user, this could be None. NOTE THAT if user specifies to use "robust" standard errors,
+  this input should be "HC1"!'

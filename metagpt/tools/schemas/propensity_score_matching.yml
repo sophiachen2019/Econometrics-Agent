@@ -1,0 +1,16 @@
+type: function
+description: 'Use propensity score matching method to estimate the Average Treatment
+  Effect (ATE), or Average Treatment Effect on the Treated (ATT) of the treatment
+  variable towards the dependent variable. This method is formally called Propensity
+  Score Matching (PSM) approach. Note that the method allows sampling with replacement,
+  as well as equal weighting when matched_num is larger than 1. The final return is
+  the final estimated ATE or ATT as is required. Could refer to: https://www.stata.com/manuals/teteffectspsmatch.pdf '
+signature: (dependent_variable, treatment_variable, propensity_score, matched_num=1,
+  target_type='ATE')
+parameters: 'Args: dependent_variable (pd.Series): Target dependent variable, which
+  should not contain nan value. treatment_variable (pd.Series): Target treatment variable,
+  which should be a binary variable with no nan value (1 for treatment, 0 for control).
+  propensity_score (pd.Series): Propensity score for each sample to receive treatment,
+  which should not contain nan value. matched_num (int): The amount of nearest neighbors
+  considered for each treatment entity. Should be an positive integer no smaller than
+  1. target_type (str): Target output type, which supports "ATE" and "ATT".'

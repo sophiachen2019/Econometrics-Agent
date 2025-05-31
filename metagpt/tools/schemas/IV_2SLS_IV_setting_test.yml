@@ -1,0 +1,16 @@
+type: function
+description: 'Test the fundamental assuptions that the proposed Instrument Variable
+  should satisfy, which are: 1. Relevant Condition: In the proposed population model,
+  the proposed IV should be relevant with the target treatment variable; 2. Exclusion
+  Restriction: In the proposed population model, the proposed IV should not be relevant
+  with the residual of this model. '
+signature: (dependent_variable, treatment_variable, IV_variable, covariate_variables,
+  cov_type=None)
+parameters: 'Args: dependent_variable (pd.Series): Target dependent variable, which
+  should not contain nan value. treatment_variable (pd.Series): Target treatment variable,
+  which should not contain nan value. IV_variable (pd.Series): Proposed instrument
+  variable. Could have ONLY ONE IV in this test function. Should not contain nan value.
+  covariate_variables (pd.DataFrame or None): Proposed covariate variables. If user
+  does not specify any covariate variable, this could be None. Otherwise, it should
+  not contain nan value. cov_type (str or None): The covariance estimator used in
+  the results. If not specified by user, this could be None.'

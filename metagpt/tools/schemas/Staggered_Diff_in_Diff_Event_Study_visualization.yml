@@ -1,0 +1,13 @@
+type: function
+description: 'Visualize the Staggered Difference-in-Difference Event Study result.
+  Note that this function needs the regression result from the previously defined
+  function "Staggered_Diff_in_Diff_Event_Study_regression()", and need to set the
+  input parameters "see_back_length" and "see_forward_length" well matched with the
+  regression result. '
+signature: '(regression_model, see_back_length: ''int'' = 4, see_forward_length: ''int''
+  = 3)'
+parameters: 'Args: regression_model (linearmodels.PanelOLS): The regression model
+  returned from the previously defined function "Staggered_Diff_in_Diff_Event_Study_regression()",
+  with the input ''target_type == "final_model"''. see_back_length (int): A positive
+  int denote the length of see-back observation. see_forward_length (int): A positive
+  int denote the length of see-forward observation.'
