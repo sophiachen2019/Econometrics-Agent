@@ -10,13 +10,7 @@ Built upon the open-source **MetaGPT framework**, our agent leverages a **zero-s
 
 Below is a demonstration of the Econometrics AI Agent in action:
 
-<p align="center">
-  <a href="assets/demo.mp4" target="_blank">
-    <img src="assets/demo.png" alt="Econometrics AI Agent Demo Video Link" width="700"/>
-  </a>
-  <br/>
-  <sub>(Click the image to watch the demo.mp4 video.)</sub>
-</p>
+https://github.com/user-attachments/assets/30732765-f718-43fb-9c60-f46aaa8e63c8
 
 ## Key Capabilities
 
