@@ -90,7 +90,7 @@ class UsersTable:
         # try:
             user = User.get(User.id == id)
             user_dict = model_to_dict(user)
-            # 将 JSON 字符串转换为 Python 列表
+            # transform the JSON string to a Python list
             user_dict['uploaded_files'] = json.loads(user_dict.get('uploaded_files', '[]'))
             return UserModel(**user_dict)
         # except Exception as e:
@@ -101,7 +101,7 @@ class UsersTable:
         try:
             user = User.get(User.email == email)
             user_dict = model_to_dict(user)
-            # 将 JSON 字符串转换为 Python 列表
+            # transform the JSON string to a Python list
             user_dict['uploaded_files'] = json.loads(user_dict.get('uploaded_files', '[]'))
             return UserModel(**user_dict)
         except Exception as e:
