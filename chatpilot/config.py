@@ -74,9 +74,8 @@ Path(DOCS_DIR).mkdir(parents=True, exist_ok=True)
 def create_config_file(file_path):
     directory = os.path.dirname(file_path)
 
-    # Check if directory exists, if not, create it
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+    # Create directory if it doesn't exist
+    os.makedirs(directory, exist_ok=True)
 
     # Data to write into the YAML file
     config_data = {
