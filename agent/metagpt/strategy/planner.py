@@ -80,7 +80,7 @@ class Planner(BaseModel):
     def current_task_id(self):
         return self.plan.current_task_id
 
-    async def update_plan(self, goal: str = "", max_tasks: int = 3, max_retries: int = 3, user_id: str = ""):
+    async def update_plan(self, goal: str = "", max_tasks: int = 6, max_retries: int = 3, user_id: str = ""):
         if goal:
             self.plan = Plan(goal=goal)
 
@@ -108,7 +108,7 @@ class Planner(BaseModel):
 
         self.working_memory.clear()
 
-    async def update_plan_as_multi_dialogue(self, goal: list[str] = [], max_tasks: int = 3, max_retries: int = 3, user_id: str = ""):
+    async def update_plan_as_multi_dialogue(self, goal: list[str] = [], max_tasks: int = 6, max_retries: int = 3, user_id: str = ""):
         separator = "\u0001" # 选择非打印字符作为分隔符
         if goal:
             self.plan.goal += f"{separator}{goal[-1].content}"
