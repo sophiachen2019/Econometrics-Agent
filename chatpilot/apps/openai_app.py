@@ -98,7 +98,7 @@ async def request_rate_limiter(
 ):
     """Unified request rate limiter for both RPD and RPM limits, with support for unlimited requests."""
     if max_daily_requests <= 0 and max_minute_requests <= 0:
-        # 如果RPD和RPM都设置为-1，则不限制请求
+        # if RPD and RPM are set to -1, do not limit requests
         return
 
     now = datetime.now()
@@ -107,24 +107,24 @@ async def request_rate_limiter(
 
     user_requests = user_request_tracker[user.id]
 
-    # 如果不是无限制，则进行请求记录和限制检查
+    # if not unlimited, record and check the requests
     if max_daily_requests > 0:
-        # 清理过期的每日请求记录
+        # clean up the expired daily requests
         user_requests["daily"] = [dt for dt in user_requests["daily"] if dt.date() == today]
-        # 检查每日请求限制
+        # check the daily request limit
         if len(user_requests["daily"]) >= max_daily_requests:
             logger.warning(f"Reach request rate limit, user: {user.email}, RPD: {max_daily_requests}")
             raise HTTPException(status_code=429, detail=ERROR_MESSAGES.RPD_LIMIT)
 
     if max_minute_requests > 0:
-        # 清理过期的每分钟请求记录
+        # clean up the expired minute requests
         user_requests["minute"] = [dt for dt in user_requests["minute"] if dt > current_minute - timedelta(minutes=1)]
-        # 检查每分钟请求限制
+        # check the minute request limit
         if len(user_requests["minute"]) >= max_minute_requests:
             logger.warning(f"Reach request rate limit, user: {user.email}, RPM: {max_minute_requests}")
             raise HTTPException(status_code=429, detail=ERROR_MESSAGES.RPM_LIMIT)
 
-    # 记录新的请求
+    # record the new requests
     user_requests["daily"].append(now)
     user_requests["minute"].append(now)
 
@@ -142,13 +142,12 @@ def openai_chat_completion(client, messages, model, stream=True, temperature=0.7
 
 async def is_related_conversation(previous_messages: List, new_message: str) -> bool:
     """
-    使用 LLM 判断新消息是否与现有会话相关。
+    Use LLM to determine if the new message is related to the existing conversation.
     """
-    # 实现此函数
     if not previous_messages:
         return False
 
-    # 将历史消息转换为字符串(每一个消息之间加一个动态数字的前缀"第几个问题")
+    # transform previous messages to a string
     previous_message = "\n".join([f"No.{i + 1} message: {message}" for i, message in enumerate(previous_messages)])
 
     prompt = f"""
@@ -159,7 +158,7 @@ async def is_related_conversation(previous_messages: List, new_message: str) -> 
     ## Previous input:
     i will give you my outlook email account and password, please help me login in and respond to an email to Lily Wang, the content is about thanks and I have sent an email to MEcon Office, I will wait for their response email.
     my email account: zhoutuo@connect.hku.hk
-    password: ZT13637378245zt
+    password: 123456
     ## Latest input:
     my email account is zhoutuo@connect.hku
     ## Your output:
@@ -168,7 +167,7 @@ async def is_related_conversation(previous_messages: List, new_message: str) -> 
     ## Previous input:
     i will give you my outlook email account and password, please help me login in and respond to an email to Lily Wang, the content is about thanks and I have sent an email to MEcon Office, I will wait for their response email.
     my email account: zhoutuo@connect.hku.hk
-    password: ZT13637378245zt
+    password: 123456
     ## Latest input:
     Please help me conduct a linear regression prediction for the Boston house price dataset, and print out the regression summary statistics table for the estimated coefficients. Discuss the economic results based on regression tables.
     ## Your output:
@@ -199,8 +198,8 @@ async def is_related_conversation(previous_messages: List, new_message: str) -> 
         response_dict = json.loads(answer)
         return True if response_dict.get("is_related", False) else False
     except Exception as e:
-        logger.error(f"LLM 判断关联性时出错: {e}")
-        # 默认认为不相关，开启新对话
+        logger.error(f"Error when using LLM to determine if the new message is related to the existing conversation: {e}")
+        # default to false, start a new conversation
         return False
 
 
@@ -486,7 +485,7 @@ async def proxy(
         f"num_ctx: {num_ctx}, messages size: {len(messages)}"
     )
 
-    # 扣除&更新用户quota
+    # deduct and update user quota
     if user.quota <= 0:
         raise HTTPException(status_code=400, detail="QUOTA_EXCEEDED")
 
@@ -499,22 +498,22 @@ async def proxy(
     # else:
     #     raise HTTPException(400, detail=ERROR_MESSAGES.DEFAULT())
 
-    # 获取最新的用户输入
+    # get the latest user input
     if messages:
         new_message = messages[-1].get('content', '')
     else:
         new_message = ""
 
     print(app.state.user_files)
-    # 从数据库获取用户信息
+    # get user information from database
     db_user = Users.get_user_by_id(user.id)
-    if db_user and db_user.uploaded_files:  # 检查用户是否存在且有上传文件
-        filename = db_user.uploaded_files[0]  # 获取最新上传的文件名
-        file_path = f"{UPLOAD_DIR}/{user.id}/{filename}"  # 构建完整的文件路径
+    if db_user and db_user.uploaded_files:  # check if the user exists and has uploaded files
+        filename = db_user.uploaded_files[0]  # get the latest uploaded file name
+        file_path = f"{UPLOAD_DIR}/{user.id}/{filename}"  # build the complete file path
         suffix_prompt = f"\nIf the user's requirements involve or mention that it contains a dataset or file, this is the path address: {file_path}."
         new_message = f"{new_message} {suffix_prompt}"
 
-    # 将最新用户之前的用户信息综合起来形成新的列表
+    # combine the user information before the latest user into a new list
     if len(messages) > 2:
         previous_messages = [message for message in messages[:-2] if message.get('role') == 'user']
     else:
@@ -529,42 +528,42 @@ async def proxy(
     logger.warning(f"new_message: {new_message}")
 
     async with app.state.conversation_lock:
-        # 使用 LLM 判断是否相关
+        # use LLM to determine if it is related
         related = await is_related_conversation(previous_messages, new_message)
         logger.warning(f"question related: {related}")
 
         if related:
-            # 使用现有会话
+            # use existing conversation
             conversation = app.state.USER_CONVERSATIONS.get(user.id)
-            print(f"原有conversation: {conversation}")
+            print(f"existing conversation: {conversation}")
             if conversation:
                 interpreter: DataInterpreter = conversation["interpreter"]
-                logger.warning(f"继续使用现有会话, user_id: {user.id}")
+                logger.warning(f"continue using existing conversation, user_id: {user.id}")
             else:
-                # 如果没有现有会话，则创建新的
+                # if there is no existing conversation, create a new one
                 interpreter = DataInterpreter(use_reflection=True, tools=["<all>"])
                 app.state.USER_CONVERSATIONS[user.id] = {
                     "interpreter": interpreter,
                     "last_active": time.time()
                 }
-                logger.warning(f"开启新的会话, user_id: {user.id}")
+                logger.warning(f"start a new conversation, user_id: {user.id}")
         else:
-            # 创建新的会话
-            # todo 检验一下是否要terminate之前的Jupyter kernel
+            # create a new conversation
+            # todo check if we need to terminate the previous Jupyter kernel
             interpreter = DataInterpreter(use_reflection=True, tools=["<all>"])
             app.state.USER_CONVERSATIONS[user.id] = {
                 "interpreter": interpreter,
                 "last_active": time.time()
             }
-            logger.warning(f"开启新的会话, user_id: {user.id}")
+            logger.warning(f"start a new conversation, user_id: {user.id}")
 
-        # 更新会话的最后活跃时间
+        # update the last active time of the conversation
         if user.id in app.state.USER_CONVERSATIONS:
             app.state.USER_CONVERSATIONS[user.id]["last_active"] = time.time()
 
-    # 处理会话逻辑
+    # process the conversation logic
     async def process_interpreter():
-        # 假设您需要将新消息传递给 DataInterpreter 的 run 方法
+        # assume you need to pass the new message to the DataInterpreter's run method
         return await main_generator_with_interpreter(interpreter, new_message, user.id)
     async def event_generator():
         try:
@@ -598,7 +597,7 @@ async def proxy(
 
             app.state.USER_CONVERSATIONS[user.id]["interpreter"] = interpreter
         finally:
-            # 清理用户的消息队列
+            # clean up the user's message queue
             cleanup_queue(user.id)
     return StreamingResponse(event_generator(), media_type='text/event-stream')
 

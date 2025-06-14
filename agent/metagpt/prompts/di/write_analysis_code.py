@@ -16,10 +16,10 @@ STRUCTUAL_PROMPT = """
 - Always prioritize using pre-defined tools for the same functionality.
 - If the dataset has been loaded in the previous executed code, DO MAKE SURE TO FIND THE CORRECT VARIABLE NAME! IN NO SCENARIO should you "generate" a pseudo-dataset by yourself!
 - If the current task has been well completed in the previous executed code, DO NOT GENERATE AND RUN AGAIN; instead, directly call the output variables from the previous executed code.
-- When you need to generate an visualization content, please do not use plt.show(), but save the image into a local file and print the saving path(The saving path is always "/Agent/image", and the print statement code is always "print(f'Image saved to: {{file_path}}')"). For example:
+- When you need to generate an visualization content, please do not use plt.show(), but save the image into a local file and print the saving path(The saving path is always "image", and the print statement code is always "print(f'Image saved to: {{file_path}}')"). For example:
 ```
 timestamp = int(time.time())
-save_dir = Path("/Agent/image")
+save_dir = Path("image")
 save_dir.mkdir(parents=True, exist_ok=True)
 file_name = f'correlation_matrix_{{timestamp}}.png'
 file_path = save_dir / file_name
