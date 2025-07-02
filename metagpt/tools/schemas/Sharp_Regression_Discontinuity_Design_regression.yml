@@ -1,0 +1,46 @@
+type: function
+description: 'Use Sharp Regression Discontinuity Design (Sharp RDD) Local Linear Regression
+  approach to estimate Average Treatment Effect (ATE) of the treatment variable towards
+  the dependent variable. This is the Sharp version, denoting that entities with treatment
+  variable above the cutoff will receive the final treatment FOR SURE. In other word,
+  it''s not the Fuzzy method. If user specifies any fixed effect variable, in the
+  Sharp RDD method this variable MUST BE transformed into dummy variables first (with
+  one of the categories dropped to avoid multicollinearity with the constant term)
+  and added into covariates. The estimated ATE is the parameter of the entity treatment
+  dummy in the regression model. NOTE THAT THIS FUNCTION DOES NOT RETURN THE FINAL
+  REGRESSION TABLE! All tables can (and only can) be printed out during the function.
+  The final return is some clearly specified parameter or statistic within the regressions,
+  or some regression model object within the function (by adjusting the argument input
+  "target_type"). '
+signature: (dependent_variable, entity_treatment_dummy, running_variable, covariate_variables,
+  running_variable_cutoff, running_variable_bandwidth, kernel_choice='uniform', cov_info='nonrobust',
+  target_type='final_model', output_tables=False)
+parameters: 'Args: dependent_variable (pd.Series): Target dependent variable, which
+  should not contain nan value. entity_treatment_dummy (pd.Series): A dummy variables
+  series denoting whether the treatment is implemented towards the entity. This input
+  should not contain nan value. running_variable (pd.Series): Target running variable
+  to determine the possibility for the entity to receive treatment, which should not
+  contain nan value. covariate_variables (pd.DataFrame or None): Proposed covariate
+  variables. If user does not specify any covariate variable, this could be None.
+  Otherwise, it should not contain nan value. running_variable_cutoff (float): Denote
+  the threshold of the treatment variable, above which the entity will have higher
+  chance to receive the final treatment. running_variable_bandwidth (float or None):
+  Denote the bandwidth to consider in this study. If use full sample (i.e., no bandwidth
+  selection in the task), this should be None. kernel_choice (str): Denote the choice
+  of kernel function used in this analysis. Default is "uniform" that gives equal
+  weights to all samples in the dataset. Can also accept "triangle" and "Epanechnikov".
+  cov_info (str or dict): The covariance estimator used in the results. Four covariance
+  estimators are supported: If no adjustment, input "nonrobust"; If heteroskedasticity-consistent
+  adjustment (allows "HC0", "HC1", "HC2", "HC3"), take "HC0" as example, input "HC0",
+  and if user specifies to use "robust" standard errors, input "HC1"; If heteroskedasticity
+  and autocorrelation consistent adjustment (HAC) with integer lag terms, take maxlags
+  equal to 5 for example, input {"HAV": 5}; If cluster adjustment with the target
+  groups variable named "groups" (pd.Series or pd.dataframe), input {"cluster": groups}.
+  target_type (str or None): Denote whether this function need to return any specific
+  evaluation metric or any other content. If only want to print out regression tables,
+  this should be None. Otherwise, three possible inputs are supported: "neg_pvalue"
+  for the regression treatment variable coefficient p-value''s negative value, "rsquared"
+  for the adjusted R-squared value of the regression, and "final_model" for the final
+  regression model. output_tables (bool): Denote whether this function need to print
+  out regression tables. If want to print out the tabels, this should be True. If
+  only want the evaluation metric outputs, this should be False.'

@@ -1,0 +1,13 @@
+type: function
+description: 'VISUALIZE propensity score distribution for treatment group and control
+  group and compare their distributions. The ideal result is that treatment group
+  and control group should distribute similarly across propensity score. One common
+  scenario is treatment group has most sample with propensity score close to 1 and
+  control group has most sample with propensity score close to 0. In this scenario,
+  the best solution is to trim samples with extreme propensity scores and obtain a
+  subsample with similarly distributed propensity score. '
+signature: (treatment_variable, propensity_score)
+parameters: 'Args: treatment_variable (pd.Series): Target treatment variable, which
+  should be a binary variable (1 for treatment, 0 for control). propensity_score (pd.Series):
+  Propensity score for each sample to receive treatment, which should not contain
+  nan value.'

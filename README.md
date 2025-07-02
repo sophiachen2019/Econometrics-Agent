@@ -144,6 +144,10 @@ Finally, run the start script from the project root directory to launch the appl
 
 ```bash
 bash start.sh
+
+# windows
+#.\start.ps1
+#.\start_windows.ps1
 ```
 
 ### 9. Access the Application
